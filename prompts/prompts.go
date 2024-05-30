@@ -39,19 +39,8 @@ var (
 
 	// Exported regex patterns for use with ReadTextRegex
 	KindClusterRegex = "^[a-z0-9]{1}[a-z0-9-]{0,30}[a-z0-9]{1}$"
-	MaasApiRegex     = "^.*\\/MAAS$"
-	// Source: https://github.com/kubevirt/containerized-data-importer/blob/main/pkg/apiserver/webhooks/util.go#L122C3-L122C3
-	CDIImageRegistryRegex = "^(docker|oci-archive):\\/\\/([a-z0-9.\\-\\/]+)([:]{0})$"
-	// Allowed chars are alphanumerics plus '.', '-', and '_', but cannot start or end with a symbol.
-	// Additionally, 2+ consecutive symbols are disallowed.
-	UsernameRegex            = "[a-zA-Z0-9]+(?:\\.[a-zA-Z0-9]+)*(?:-[a-zA-Z0-9]+)*(?:_[a-zA-Z0-9]+)*"
-	PaletteResourceNameRegex = "[a-z][a-z0-9-]{1,31}[a-z0-9]"
-	VSphereUsernameRegex     = "^" + UsernameRegex + "@" + domain + "$"
-	CPUReqRegex              = "(^\\d+\\.?\\d*[M,G]Hz)"
-	MemoryReqRegex           = "(^\\d+\\.?\\d*[M,G,T]i)"
-	DiskReqRegex             = "(^\\d+\\.?\\d*[M,G,T]i)"
-	ArtifactRefRegex         = "^[a-z0-9_.\\-\\/]+(:.*)?(@sha256:.*)?$"
-	UUIDRegex                = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+	ArtifactRefRegex = "^[a-z0-9_.\\-\\/]+(:.*)?(@sha256:.*)?$"
+	UUIDRegex        = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
 
 	noProxyExceptions  = []string{"*", "localhost", "kubernetes"}
 	domainRegex        = regexp.MustCompile("^" + domain + "$")
@@ -70,8 +59,7 @@ type TUI interface {
 
 type PtermTUI struct{}
 
-// GetBool prompts a bool from the user while automatically appending a ? character to the end of
-// the prompt message.
+// GetBool prompts a bool from the user while automatically appending a ? character to the end of the prompt message.
 func (p PtermTUI) GetBool(prompt string, defaultVal bool) (bool, error) {
 	return pterm.DefaultInteractiveConfirm.
 		WithDefaultText(prompt + "?").
@@ -86,9 +74,9 @@ func (p PtermTUI) GetText(prompt, defaultVal, mask string, optional bool, valida
 			prompt = fmt.Sprintf("%s (optional, hit enter to skip)", prompt)
 		}
 
-		// shoddy workaround for https://github.com/pterm/pterm/issues/560
-		// inputs longer than the terminal width are handled better with multiline
-		// enabled... but the prompt is still repeated after every key press
+		// workaround for https://github.com/pterm/pterm/issues/560:
+		// inputs longer than the terminal width are handled better with
+		// multiline enabled, but the prompt is still repeated after every key press
 		var multiline bool
 		if len(defaultVal) > 60 {
 			multiline = true
@@ -237,7 +225,6 @@ func ReadText(label, defaultVal string, optional bool, maxLen int) (string, erro
 }
 
 func ReadTextRegex(label, defaultVal, errMsg, regexPattern string) (string, error) {
-
 	validate := func(input string) error {
 		if input == "" {
 			return InputMandatoryError
@@ -261,7 +248,6 @@ func ReadTextRegex(label, defaultVal, errMsg, regexPattern string) (string, erro
 }
 
 func ReadSemVer(label, defaultVal, errMsg string) (string, error) {
-
 	validate := func(input string) error {
 		if input == "" {
 			return InputMandatoryError
@@ -319,7 +305,6 @@ func ReadBasicCreds(usernamePrompt, passwordPrompt, defaultUsername, defaultPass
 }
 
 func ReadURL(label, defaultVal, errMsg string, optional bool) (string, error) {
-
 	validate := func(input string) error {
 		if input == "" {
 			if !optional {
@@ -351,7 +336,6 @@ func ReadURL(label, defaultVal, errMsg string, optional bool) (string, error) {
 }
 
 func ReadURLRegex(label, defaultVal, errMsg, regexPattern string) (string, error) {
-
 	validate := func(input string) error {
 		r, err := regexp.Compile(regexPattern)
 		if err != nil {
@@ -386,7 +370,6 @@ func ReadURLRegex(label, defaultVal, errMsg, regexPattern string) (string, error
 }
 
 func ReadDomains(label, defaultVal, errMsg string, optional bool, maxVals int) (string, error) {
-
 	validate := func(input string) error {
 		if input == "" {
 			if !optional {
@@ -415,7 +398,6 @@ func ReadDomains(label, defaultVal, errMsg string, optional bool, maxVals int) (
 }
 
 func ReadIPs(label, defaultVal, errMsg string, optional bool, maxVals int) (string, error) {
-
 	validate := func(input string) error {
 		if input == "" {
 			if !optional {
@@ -444,7 +426,6 @@ func ReadIPs(label, defaultVal, errMsg string, optional bool, maxVals int) (stri
 }
 
 func ReadDomainsOrIPs(label, defaultVal, errMsg string, optional bool, maxVals int) (string, error) {
-
 	validate := func(input string) error {
 		if input == "" {
 			if !optional {
@@ -477,7 +458,6 @@ func ReadDomainsOrIPs(label, defaultVal, errMsg string, optional bool, maxVals i
 }
 
 func ReadDomainOrIPNoPort(label, defaultVal, errMsg string, optional bool) (string, error) {
-
 	validate := func(input string) error {
 		if input == "" {
 			if !optional {
@@ -503,7 +483,6 @@ func ReadDomainOrIPNoPort(label, defaultVal, errMsg string, optional bool) (stri
 }
 
 func ReadCIDRs(label, defaultVal, errMsg string, optional bool, maxVals int) (string, error) {
-
 	validate := func(input string) error {
 		if input == "" {
 			if !optional {
@@ -532,7 +511,6 @@ func ReadCIDRs(label, defaultVal, errMsg string, optional bool, maxVals int) (st
 }
 
 func ReadFilePath(label, defaultVal, errMsg string, optional bool) (string, error) {
-
 	validate := func(input string) error {
 		if input == "" {
 			if !optional {
@@ -559,7 +537,6 @@ func ReadFilePath(label, defaultVal, errMsg string, optional bool) (string, erro
 }
 
 func ReadK8sName(label, defaultVal string, optional bool) (string, error) {
-
 	validate := func(input string) error {
 		if err := validateStringFunc(optional, -1)(input); err != nil {
 			return err

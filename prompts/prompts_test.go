@@ -870,6 +870,8 @@ func TestReadTextRegex(t *testing.T) {
 }
 
 func TestReadURLRegex(t *testing.T) {
+	MaasApiRegex := "^.*\\/MAAS$"
+
 	subtests := []struct {
 		name         string
 		tui          *mocks.MockTUI
