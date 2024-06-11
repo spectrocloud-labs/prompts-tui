@@ -1,6 +1,8 @@
 package prompts
 
 import (
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"net"
 	"net/url"
@@ -549,6 +551,43 @@ func ReadK8sName(label, defaultVal string, optional bool) (string, error) {
 		return s, errors.Wrap(err, "failure in ReadK8sName")
 	}
 	return s, nil
+}
+
+func ReadCACert(prompt string, defaultCaCertPath, caCertPathOverride string) (caCertPath string, caCertName string, caCertData []byte, err error) {
+	if caCertPathOverride != "" {
+		caCertPath = caCertPathOverride
+	} else {
+		caCertPath, err = ReadFilePath(prompt, defaultCaCertPath, "Invalid filepath specified", true)
+	}
+	if err != nil {
+		return "", "", nil, err
+	}
+	if caCertPath == "" {
+		return "", "", nil, nil
+	}
+	caFile, _ := os.Stat(caCertPath)
+	caBytes, err := os.ReadFile(caCertPath) //#nosec
+	if err != nil {
+		return "", "", nil, err
+	}
+	// Validate CA cert
+	var blocks []byte
+	rest := caBytes
+	for {
+		var block *pem.Block
+		block, rest = pem.Decode(rest)
+		if block == nil {
+			return "", "", nil, fmt.Errorf("PEM parse failure for %s", caCertPath)
+		}
+		blocks = append(blocks, block.Bytes...)
+		if len(rest) == 0 {
+			break
+		}
+	}
+	if _, err = x509.ParseCertificates(blocks); err != nil {
+		return "", "", nil, err
+	}
+	return caCertPath, caFile.Name(), caBytes, nil
 }
 
 // See: https://pkg.go.dev/golang.org/x/net/http/httpproxy#Config
