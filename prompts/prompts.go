@@ -557,6 +557,8 @@ func ReadCACert(prompt string, defaultCaCertPath, caCertPathOverride string) (ca
 	if caCertPathOverride != "" {
 		caCertPath = caCertPathOverride
 	} else {
+		logger.Info("Optionally enter the file path to your desired CA certificate, e.g., /usr/local/share/ca-certificates/ca.crt")
+		logger.Info("Press enter to skip if your certificates are publicly verifiable")
 		caCertPath, err = ReadFilePath(prompt, defaultCaCertPath, "Invalid filepath specified", true)
 	}
 	if err != nil {
