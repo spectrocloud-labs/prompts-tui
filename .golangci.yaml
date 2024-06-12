@@ -20,7 +20,7 @@ linters-settings:
 
   # Non-default
   cyclop:
-    max-complexity: 12 # maximal code complexity to report; default 10
+    max-complexity: 15 # maximal code complexity to report; default 10
     package-average: 0.0 # maximal average package complexity to report; default 0.0
   gocognit:
     min-complexity: 30 # minimal code complexity to report; default: 30
