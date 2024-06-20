@@ -1123,3 +1123,69 @@ func TestArtifactRefRegex(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateJson(t *testing.T) {
+	subtests := []struct {
+		name        string
+		json        string
+		expectedErr error
+	}{
+		{
+			name:        "ValidateJson (empty_string)",
+			json:        "",
+			expectedErr: nil,
+		},
+		{
+			name:        "ValidateJson (pass)",
+			json:        `{"key": "value"}`,
+			expectedErr: nil,
+		},
+		{
+			name:        "ValidateJson (fail)",
+			json:        `{"key": "value"`,
+			expectedErr: ValidationError,
+		},
+	}
+
+	for _, subtest := range subtests {
+		t.Run(subtest.name, func(t *testing.T) {
+			err := ValidateJson(subtest.json)
+			if err != nil && err.Error() != subtest.expectedErr.Error() {
+				t.Errorf("expected error (%v), got error (%v)", subtest.expectedErr, err)
+			}
+		})
+	}
+}
+
+func TestValidateSSHPublicKey(t *testing.T) {
+	subtests := []struct {
+		name        string
+		sshKey      string
+		expectedErr error
+	}{
+		{
+			name:        "ValidateSSHPublicKey (empty_string)",
+			sshKey:      "",
+			expectedErr: nil,
+		},
+		{
+			name:        "ValidateSSHPublicKey (pass)",
+			sshKey:      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEIrPZHAGI+sCM79NFrSxHTU8A32OtjoNFz3s7+JwDOG",
+			expectedErr: nil,
+		},
+		{
+			name:        "ValidateSSHPublicKey (fail)",
+			sshKey:      "ssh-ed25519 invalid",
+			expectedErr: ValidationError,
+		},
+	}
+
+	for _, subtest := range subtests {
+		t.Run(subtest.name, func(t *testing.T) {
+			err := ValidateSSHPublicKey(subtest.sshKey)
+			if err != nil && err.Error() != subtest.expectedErr.Error() {
+				t.Errorf("expected error (%v), got error (%v)", subtest.expectedErr, err)
+			}
+		})
+	}
+}

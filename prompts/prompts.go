@@ -2,6 +2,7 @@ package prompts
 
 import (
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"net"
@@ -623,6 +624,17 @@ func ValidateSSHPublicKey(s string) error {
 	_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(s))
 	if err != nil {
 		logger.Error("invalid SSH public key", logger.Args("input", s, "error", err))
+		return ValidationError
+	}
+	return nil
+}
+
+func ValidateJson(s string) error {
+	if s == "" {
+		return nil
+	}
+	if !json.Valid([]byte(s)) {
+		logger.Error("invalid JSON input", logger.Args("input", s))
 		return ValidationError
 	}
 	return nil
