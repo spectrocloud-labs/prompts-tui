@@ -78,11 +78,11 @@ func EditFile(initialContent []byte) ([]byte, error) {
 	return data, nil
 }
 
-// EditFileValidated prompts a user to edit a file with a predefined prompt, initial content, and separator.
-// An optional validation function can be specified to validate the content of each line.
+// EditFileValidatedByLine prompts a user to edit a file with a predefined prompt, initial content, and separator.
+// An optional line function can be specified to validate the content of each line.
 // Entries within the file must be newline-separated. Additionally, a minimum number of entries can be specified.
 // The values on each line are joined by the separator and returned to the caller.
-func EditFileValidated(prompt, content, separator string, validate func(input string) error, minEntries int) (string, error) {
+func EditFileValidatedByLine(prompt, content, separator string, lineValidate func(input string) error, minEntries int) (string, error) {
 	if separator == "" {
 		return "", errors.New("a non-empty separator is required")
 	}
@@ -100,20 +100,7 @@ func EditFileValidated(prompt, content, separator string, validate func(input st
 		}
 		lines := strings.Split(string(partsBytes), "\n")
 
-		// Parse final lines, skipping comments and optionally validating each line
-		finalLines := make([]string, 0)
-		for _, l := range lines {
-			l = strings.TrimSpace(l)
-			if l != "" && !strings.HasPrefix(l, "#") {
-				if validate != nil {
-					if err = validate(l); err != nil {
-						break
-					}
-				}
-				finalLines = append(finalLines, l)
-			}
-		}
-
+		finalLines, err := stripCommentsAndValidateLines(lines, lineValidate)
 		if err != nil && errors.Is(err, ValidationError) {
 			// for integration tests, return the error
 			if os.Getenv("IS_TEST") == "true" {
@@ -133,4 +120,61 @@ func EditFileValidated(prompt, content, separator string, validate func(input st
 		content = strings.TrimRight(strings.Join(finalLines, separator), separator)
 		return content, err
 	}
+}
+
+// EditFileValidatedByFullContent prompts a user to edit a file with a predefined prompt and initial content.
+// An optional file validation function can be specified to validate the content of the entire file.
+// Additionally, a minimum number of lines can be specified for the file.
+// The final file content is returned to the caller.
+func EditFileValidatedByFullContent(prompt, content string, fileValidate func(content string) error, minLines int) (string, error) {
+	for {
+		partsBytes := []byte(content)
+		partsBytes, err := EditFile(append([]byte(prompt), partsBytes...))
+		if err != nil {
+			return content, err
+		}
+		lines := strings.Split(string(partsBytes), "\n")
+
+		finalLines, _ := stripCommentsAndValidateLines(lines, nil)
+		content := strings.Join(finalLines, "\n")
+		if fileValidate != nil {
+			if err = fileValidate(content); err != nil {
+				// for integration tests, return the error
+				if os.Getenv("IS_TEST") == "true" {
+					return "", err
+				}
+				// otherwise, we assume the validation function logged
+				// a meaningful error message and let the user try again
+				time.Sleep(5 * time.Second)
+				continue
+			}
+		}
+
+		if minLines > 0 && len(finalLines) < minLines {
+			logger.Info(fmt.Sprintf("Error editing file: %d or more lines are required", minLines))
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
+		return content, err
+	}
+}
+
+// parses lines of a file, skips comments and optionally validating each line
+func stripCommentsAndValidateLines(lines []string, lineValidate func(input string) error) ([]string, error) {
+	finalLines := make([]string, 0)
+
+	for _, l := range lines {
+		l = strings.TrimSpace(l)
+		if l != "" && !strings.HasPrefix(l, "#") {
+			if lineValidate != nil {
+				if err := lineValidate(l); err != nil {
+					return finalLines, err
+				}
+			}
+			finalLines = append(finalLines, l)
+		}
+	}
+
+	return finalLines, nil
 }
