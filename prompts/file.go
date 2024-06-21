@@ -136,7 +136,6 @@ func EditFileValidatedByFullContent(prompt, content string, fileValidate func(co
 		lines := strings.Split(string(partsBytes), "\n")
 
 		finalLines, _ := stripCommentsAndValidateLines(lines, nil)
-		//content := strings.TrimRight(strings.Join(finalLines, separator), separator)
 		content := strings.Join(finalLines, "\n")
 		if fileValidate != nil {
 			if err = fileValidate(content); err != nil {
