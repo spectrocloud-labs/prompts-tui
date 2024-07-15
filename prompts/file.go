@@ -23,10 +23,10 @@ func init() {
 	editor := os.Getenv("EDITOR")
 	if visual != "" {
 		editorBinary = visual
-		logger.Info(fmt.Sprintf("Detected VISUAL env var. Overrode default editor (vi) with %s.", editorBinary))
+		logger.Debug(fmt.Sprintf("Detected VISUAL env var. Overrode default editor (vi) with %s.", editorBinary))
 	} else if editor != "" {
 		editorBinary = editor
-		logger.Info(fmt.Sprintf("Detected EDITOR env var. Overrode default editor (vi) with %s.", editorBinary))
+		logger.Debug(fmt.Sprintf("Detected EDITOR env var. Overrode default editor (vi) with %s.", editorBinary))
 	}
 	var err error
 	editorPath, err = exec.LookPath(editorBinary)
@@ -44,8 +44,9 @@ func getEditorExecutor(editor, filename string) mocks.CommandExecutor {
 	return cmd
 }
 
+// EditFile prompts a user to edit a file with a predefined prompt and initial content.
 func EditFile(initialContent []byte) ([]byte, error) {
-	tmpFile, err := os.CreateTemp(os.TempDir(), "validator")
+	tmpFile, err := os.CreateTemp(os.TempDir(), "prompts")
 	if err != nil {
 		return nil, err
 	}
