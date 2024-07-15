@@ -32,8 +32,6 @@ const (
 )
 
 var (
-	logger = pterm.DefaultLogger
-
 	// Exported to enable monkey-patching
 	Tui TUI = PtermTUI{}
 
