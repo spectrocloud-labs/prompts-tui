@@ -8,9 +8,11 @@ import (
 )
 
 type MockTUI struct {
-	ReturnVals []string
-	Errs       []error
-	validate   func(string) error
+	Values        []string
+	SliceValues   [][]string
+	Errs          []error
+	validate      func(string) error
+	validateSlice func([]string) error
 }
 
 func (m *MockTUI) GetBool(prompt string, defaultVal bool) (bool, error) {
@@ -33,6 +35,13 @@ func (m *MockTUI) GetText(prompt, defaultVal, mask string, optional bool, valida
 		m.validate = validate
 	}
 	return m.run()
+}
+
+func (m *MockTUI) GetTextSlice(prompt, defaultVal string, optional bool, validate func([]string) error) ([]string, error) {
+	if validate != nil {
+		m.validateSlice = validate
+	}
+	return m.runSlice()
 }
 
 func (m *MockTUI) GetSelection(prompt string, options []string) (string, error) {
@@ -59,13 +68,28 @@ func (m *MockTUI) GetMultiSelection(prompt string, options []string, minSelectio
 }
 
 func (m *MockTUI) run() (val string, err error) {
-	val, m.ReturnVals = m.ReturnVals[0], m.ReturnVals[1:]
+	val, m.Values = m.Values[0], m.Values[1:]
 	if m.validate != nil {
 		validateErr := m.validate(val)
 		if validateErr != nil {
 			m.Errs = []error{validateErr}
 		}
 		m.validate = nil // reset for subsequent prompts
+	}
+	if m.Errs != nil {
+		err, m.Errs = m.Errs[0], m.Errs[1:]
+	}
+	return val, err
+}
+
+func (m *MockTUI) runSlice() (val []string, err error) {
+	val, m.SliceValues = m.SliceValues[0], m.SliceValues[1:]
+	if m.validateSlice != nil {
+		validateErr := m.validateSlice(val)
+		if validateErr != nil {
+			m.Errs = []error{validateErr}
+		}
+		m.validateSlice = nil // reset for subsequent prompts
 	}
 	if m.Errs != nil {
 		err, m.Errs = m.Errs[0], m.Errs[1:]

@@ -102,7 +102,7 @@ func EditFileValidatedByLine(prompt, content, separator string, lineValidate fun
 		lines := strings.Split(string(partsBytes), "\n")
 
 		finalLines, err := stripCommentsAndValidateLines(lines, lineValidate)
-		if err != nil && errors.Is(err, ValidationError) {
+		if err != nil && errors.Is(err, ErrValidationFailed) {
 			// for integration tests, return the error
 			if os.Getenv("IS_TEST") == "true" {
 				return "", err

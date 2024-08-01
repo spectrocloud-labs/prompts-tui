@@ -35,8 +35,8 @@ var (
 	// Exported to enable monkey-patching
 	Tui TUI = PtermTUI{}
 
-	ValidationError     = errors.New("validation failed")
-	InputMandatoryError = errors.New("input is mandatory")
+	ErrValidationFailed = errors.New("validation failed")
+	ErrInputMandatory   = errors.New("input is mandatory")
 
 	// Exported regex patterns for use with ReadTextRegex
 	KindClusterRegex = "^[a-z0-9]{1}[a-z0-9-]{0,30}[a-z0-9]{1}$"
@@ -54,6 +54,7 @@ var (
 type TUI interface {
 	GetBool(prompt string, defaultVal bool) (bool, error)
 	GetText(prompt, defaultVal, mask string, optional bool, validate func(string) error) (string, error)
+	GetTextSlice(prompt, defaultVal string, optional bool, validate func([]string) error) ([]string, error)
 	GetSelection(prompt string, options []string) (string, error)
 	GetMultiSelection(prompt string, options []string, minSelections int) ([]string, error)
 }
@@ -98,6 +99,39 @@ func (p PtermTUI) GetText(prompt, defaultVal, mask string, optional bool, valida
 			continue
 		}
 		return s, nil
+	}
+}
+
+func (p PtermTUI) GetTextSlice(prompt, defaultVal string, optional bool, validate func([]string) error) ([]string, error) {
+	for {
+		if optional {
+			prompt = fmt.Sprintf("%s (optional, newline separated values, hit tab to skip)", prompt)
+		} else {
+			prompt = fmt.Sprintf("%s (newline separated values)", prompt)
+		}
+
+		s, err := pterm.DefaultInteractiveTextInput.
+			WithDefaultValue(defaultVal).
+			WithMultiLine(true).
+			WithOnInterruptFunc(exit).
+			Show(prompt)
+		if err != nil {
+			return nil, err
+		}
+
+		lines := make([]string, 0)
+		for _, line := range strings.Split(s, "\n") {
+			line := strings.TrimSpace(line)
+			if line != "" {
+				lines = append(lines, line)
+			}
+		}
+		if err := validate(lines); err != nil {
+			logger.Info("Validation failed", logger.Args("input", s, "error", err.Error()))
+			continue
+		}
+
+		return lines, nil
 	}
 }
 
@@ -225,20 +259,100 @@ func ReadText(label, defaultVal string, optional bool, maxLen int) (string, erro
 	return strings.TrimSpace(s), nil
 }
 
+func ReadTextSlice(label, defaultVal, errMsg, regexPattern string, optional bool) ([]string, error) {
+	validate := func(input []string) error {
+		if !optional {
+			if len(input) == 0 {
+				return ErrInputMandatory
+			}
+			if len(slices.Compact(input)) == 1 && slices.Compact(input)[0] == "" {
+				return ErrInputMandatory
+			}
+		}
+		if regexPattern == "" {
+			return nil
+		}
+		for _, line := range input {
+			if err := validateRegex(line, errMsg, regexPattern); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	s, err := Tui.GetTextSlice(label, defaultVal, optional, validate)
+	if err != nil {
+		return nil, errors.Wrap(err, "failure in ReadTextSlice")
+	}
+	return s, nil
+}
+
+func ReadIntSlice(label, defaultVal string, optional bool) ([]int, error) {
+	validate := func(input []string) error {
+		if !optional {
+			if len(input) == 0 {
+				return ErrInputMandatory
+			}
+			if len(slices.Compact(input)) == 1 && slices.Compact(input)[0] == "" {
+				return ErrInputMandatory
+			}
+		}
+		for _, line := range input {
+			if _, err := strconv.Atoi(line); err != nil {
+				return fmt.Errorf("input %s is not an integer", line)
+			}
+		}
+		return nil
+	}
+
+	s, err := Tui.GetTextSlice(label, defaultVal, optional, validate)
+	if err != nil {
+		return nil, errors.Wrap(err, "failure in ReadIntSlice")
+	}
+
+	ints := make([]int, 0)
+	for _, line := range s {
+		i, _ := strconv.Atoi(line)
+		ints = append(ints, i)
+	}
+
+	return ints, nil
+}
+
+func ReadURLSlice(label, defaultVal, errMsg string, optional bool) ([]string, error) {
+	validate := func(input []string) error {
+		if !optional {
+			if len(input) == 0 {
+				return ErrInputMandatory
+			}
+			if len(slices.Compact(input)) == 1 && slices.Compact(input)[0] == "" {
+				return ErrInputMandatory
+			}
+		}
+		for _, line := range input {
+			if err := validateURL(line, errMsg); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	s, err := Tui.GetTextSlice(label, defaultVal, optional, validate)
+	if err != nil {
+		return nil, errors.Wrap(err, "failure in ReadURLSlice")
+	}
+	return s, nil
+}
+
 func ReadTextRegex(label, defaultVal, errMsg, regexPattern string) (string, error) {
 	validate := func(input string) error {
 		if input == "" {
-			return InputMandatoryError
+			return ErrInputMandatory
 		}
-		r, err := regexp.Compile(regexPattern)
-		if err != nil {
-			return errors.Wrap(err, errMsg)
+		if err := validateRegex(input, errMsg, regexPattern); err != nil {
+			return err
 		}
-		m := r.Find([]byte(input))
-		if string(m) == input {
-			return nil
-		}
-		return fmt.Errorf("input %s does not match regex %s; %s", input, regexPattern, errMsg)
+		return nil
 	}
 
 	s, err := Tui.GetText(label, defaultVal, "", false, validate)
@@ -251,20 +365,15 @@ func ReadTextRegex(label, defaultVal, errMsg, regexPattern string) (string, erro
 func ReadSemVer(label, defaultVal, errMsg string) (string, error) {
 	validate := func(input string) error {
 		if input == "" {
-			return InputMandatoryError
+			return ErrInputMandatory
 		}
 		if !strings.HasPrefix(input, "v") {
 			return fmt.Errorf("input %s must start with a 'v'; %s", input, errMsg)
 		}
-		r, err := regexp.Compile(semver.SemVerRegex)
-		if err != nil {
-			return errors.Wrap(err, errMsg)
+		if err := validateRegex(input, errMsg, semver.SemVerRegex); err != nil {
+			return err
 		}
-		m := r.Find([]byte(input))
-		if string(m) == input {
-			return nil
-		}
-		return fmt.Errorf("input %s does not match regex %s; %s", input, semver.SemVerRegex, errMsg)
+		return nil
 	}
 
 	s, err := Tui.GetText(label, defaultVal, "", false, validate)
@@ -309,22 +418,12 @@ func ReadURL(label, defaultVal, errMsg string, optional bool) (string, error) {
 	validate := func(input string) error {
 		if input == "" {
 			if !optional {
-				return InputMandatoryError
+				return ErrInputMandatory
 			} else {
 				return nil
 			}
 		}
-
-		_, err := url.ParseRequestURI(input)
-		if err != nil {
-			return errors.Wrap(err, errMsg)
-		}
-
-		u, err := url.Parse(input)
-		if err != nil || u.Scheme == "" || u.Host == "" {
-			return errors.Wrap(err, errMsg)
-		}
-		return nil
+		return validateURL(input, errMsg)
 	}
 
 	s, err := Tui.GetText(label, defaultVal, "", optional, validate)
@@ -338,27 +437,10 @@ func ReadURL(label, defaultVal, errMsg string, optional bool) (string, error) {
 
 func ReadURLRegex(label, defaultVal, errMsg, regexPattern string) (string, error) {
 	validate := func(input string) error {
-		r, err := regexp.Compile(regexPattern)
-		if err != nil {
-			return errors.Wrap(err, errMsg)
+		if err := validateRegex(input, errMsg, regexPattern); err != nil {
+			return err
 		}
-		m := r.Find([]byte(input))
-		if string(m) != input {
-			return fmt.Errorf("input %s does not match regex %s; %s", input, regexPattern, errMsg)
-		}
-
-		_, err = url.ParseRequestURI(input)
-		if err != nil {
-			return errors.Wrap(err, errMsg)
-		}
-
-		u, err := url.Parse(input)
-		if err != nil {
-			return errors.Wrap(err, errMsg)
-		} else if u.Scheme == "" || u.Host == "" {
-			return errors.New(errMsg)
-		}
-		return nil
+		return validateURL(input, errMsg)
 	}
 
 	s, err := Tui.GetText(label, defaultVal, "", false, validate)
@@ -374,7 +456,7 @@ func ReadDomains(label, defaultVal, errMsg string, optional bool, maxVals int) (
 	validate := func(input string) error {
 		if input == "" {
 			if !optional {
-				return InputMandatoryError
+				return ErrInputMandatory
 			} else {
 				return nil
 			}
@@ -402,7 +484,7 @@ func ReadIPs(label, defaultVal, errMsg string, optional bool, maxVals int) (stri
 	validate := func(input string) error {
 		if input == "" {
 			if !optional {
-				return InputMandatoryError
+				return ErrInputMandatory
 			} else {
 				return nil
 			}
@@ -430,7 +512,7 @@ func ReadDomainsOrIPs(label, defaultVal, errMsg string, optional bool, maxVals i
 	validate := func(input string) error {
 		if input == "" {
 			if !optional {
-				return InputMandatoryError
+				return ErrInputMandatory
 			} else {
 				return nil
 			}
@@ -462,7 +544,7 @@ func ReadDomainOrIPNoPort(label, defaultVal, errMsg string, optional bool) (stri
 	validate := func(input string) error {
 		if input == "" {
 			if !optional {
-				return InputMandatoryError
+				return ErrInputMandatory
 			} else {
 				return nil
 			}
@@ -487,7 +569,7 @@ func ReadCIDRs(label, defaultVal, errMsg string, optional bool, maxVals int) (st
 	validate := func(input string) error {
 		if input == "" {
 			if !optional {
-				return InputMandatoryError
+				return ErrInputMandatory
 			} else {
 				return nil
 			}
@@ -515,7 +597,7 @@ func ReadFilePath(label, defaultVal, errMsg string, optional bool) (string, erro
 	validate := func(input string) error {
 		if input == "" {
 			if !optional {
-				return InputMandatoryError
+				return ErrInputMandatory
 			} else {
 				return nil
 			}
@@ -591,6 +673,30 @@ func ReadCACert(prompt string, defaultCaCertPath, caCertPathOverride string) (ca
 	return caCertPath, caFile.Name(), caBytes, nil
 }
 
+func validateRegex(input, errMsg, regexPattern string) error {
+	r, err := regexp.Compile(regexPattern)
+	if err != nil {
+		return errors.Wrap(err, errMsg)
+	}
+	m := r.Find([]byte(input))
+	if string(m) == input {
+		return nil
+	}
+	return fmt.Errorf("input %s does not match regex %s; %s", input, regexPattern, errMsg)
+}
+
+func validateURL(input, errMsg string) error {
+	if _, err := url.ParseRequestURI(input); err != nil {
+		return errors.Wrap(err, errMsg)
+	}
+	if u, err := url.Parse(input); err != nil {
+		return errors.Wrap(err, errMsg)
+	} else if u.Scheme == "" || u.Host == "" {
+		return errors.New(errMsg)
+	}
+	return nil
+}
+
 // See: https://pkg.go.dev/golang.org/x/net/http/httpproxy#Config
 func ValidateNoProxy(s string) error {
 	if s == "" {
@@ -612,7 +718,7 @@ func ValidateNoProxy(s string) error {
 	}
 
 	logger.Error("invalid no_proxy input", logger.Args(s, "is neither an IP, CIDR, domain, '*', domain:port, or IP:port"))
-	return ValidationError
+	return ErrValidationFailed
 }
 
 func ValidateSSHPublicKey(s string) error {
@@ -622,7 +728,7 @@ func ValidateSSHPublicKey(s string) error {
 	_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(s))
 	if err != nil {
 		logger.Error("invalid SSH public key", logger.Args("input", s, "error", err))
-		return ValidationError
+		return ErrValidationFailed
 	}
 	return nil
 }
@@ -633,7 +739,7 @@ func ValidateJson(s string) error {
 	}
 	if !json.Valid([]byte(s)) {
 		logger.Error("invalid JSON input", logger.Args("input", s))
-		return ValidationError
+		return ErrValidationFailed
 	}
 	return nil
 }
@@ -647,7 +753,7 @@ func validateDomain(domain string) bool {
 func validateStringFunc(optional bool, maxLen int) func(input string) error {
 	return func(input string) error {
 		if !optional && input == "" {
-			return InputMandatoryError
+			return ErrInputMandatory
 		}
 		fieldLen := len(input)
 		if maxLen > 0 && fieldLen > maxLen {
