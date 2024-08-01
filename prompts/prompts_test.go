@@ -21,8 +21,8 @@ func TestReadBool(t *testing.T) {
 		{
 			name: "Read Yes (lower)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"y"},
-				Errs:       nil,
+				Values: []string{"y"},
+				Errs:   nil,
 			},
 			expectedData: true,
 			expectedErr:  nil,
@@ -30,8 +30,8 @@ func TestReadBool(t *testing.T) {
 		{
 			name: "Read Yes (upper)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"Y"},
-				Errs:       nil,
+				Values: []string{"Y"},
+				Errs:   nil,
 			},
 			expectedData: true,
 			expectedErr:  nil,
@@ -39,8 +39,8 @@ func TestReadBool(t *testing.T) {
 		{
 			name: "Read No (lower)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"n"},
-				Errs:       nil,
+				Values: []string{"n"},
+				Errs:   nil,
 			},
 			expectedData: false,
 			expectedErr:  nil,
@@ -48,8 +48,8 @@ func TestReadBool(t *testing.T) {
 		{
 			name: "Read No (upper)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"N"},
-				Errs:       nil,
+				Values: []string{"N"},
+				Errs:   nil,
 			},
 			expectedData: false,
 			expectedErr:  nil,
@@ -57,8 +57,8 @@ func TestReadBool(t *testing.T) {
 		{
 			name: "Read Default (true)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{""},
-				Errs:       nil,
+				Values: []string{""},
+				Errs:   nil,
 			},
 			defaultVal:   true,
 			expectedData: true,
@@ -67,8 +67,8 @@ func TestReadBool(t *testing.T) {
 		{
 			name: "Read Default (false)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{""},
-				Errs:       nil,
+				Values: []string{""},
+				Errs:   nil,
 			},
 			defaultVal:   false,
 			expectedData: false,
@@ -102,8 +102,8 @@ func TestReadInt(t *testing.T) {
 		{
 			name: "Read Int (pass)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"1"},
-				Errs:       nil,
+				Values: []string{"1"},
+				Errs:   nil,
 			},
 			expectedData: 1,
 			expectedErr:  nil,
@@ -111,8 +111,8 @@ func TestReadInt(t *testing.T) {
 		{
 			name: "Read Int (fail)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"2"},
-				Errs:       []error{errors.New("fail")},
+				Values: []string{"2"},
+				Errs:   []error{errors.New("fail")},
 			},
 			expectedData: -1,
 			expectedErr:  errors.New("failure in ReadInt: fail"),
@@ -120,8 +120,8 @@ func TestReadInt(t *testing.T) {
 		{
 			name: "Read Int (fail_min)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"2"},
-				Errs:       nil,
+				Values: []string{"2"},
+				Errs:   nil,
 			},
 			min:          10,
 			expectedData: -1,
@@ -130,8 +130,8 @@ func TestReadInt(t *testing.T) {
 		{
 			name: "Read Int (fail_max)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"2"},
-				Errs:       nil,
+				Values: []string{"2"},
+				Errs:   nil,
 			},
 			max:          1,
 			expectedData: -1,
@@ -140,8 +140,8 @@ func TestReadInt(t *testing.T) {
 		{
 			name: "Read Int (fail_extra)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"-1", "a"},
-				Errs:       nil,
+				Values: []string{"-1", "a"},
+				Errs:   nil,
 			},
 			max:          1,
 			expectedData: -1,
@@ -175,8 +175,8 @@ func TestReadText(t *testing.T) {
 		{
 			name: "Read Text (pass)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"foo"},
-				Errs:       nil,
+				Values: []string{"foo"},
+				Errs:   nil,
 			},
 			expectedData: "foo",
 			expectedErr:  nil,
@@ -184,8 +184,8 @@ func TestReadText(t *testing.T) {
 		{
 			name: "Read Text (fail)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"foo"},
-				Errs:       []error{errors.New("fail")},
+				Values: []string{"foo"},
+				Errs:   []error{errors.New("fail")},
 			},
 			expectedData: "foo",
 			expectedErr:  errors.New("failure in ReadText: fail"),
@@ -193,8 +193,8 @@ func TestReadText(t *testing.T) {
 		{
 			name: "Read Text (fail_len)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"foo"},
-				Errs:       nil,
+				Values: []string{"foo"},
+				Errs:   nil,
 			},
 			maxLen:       2,
 			expectedData: "foo",
@@ -203,8 +203,8 @@ func TestReadText(t *testing.T) {
 		{
 			name: "Read Text (fail_optional)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{""},
-				Errs:       nil,
+				Values: []string{""},
+				Errs:   nil,
 			},
 			isOptional:   false,
 			expectedData: "",
@@ -213,8 +213,8 @@ func TestReadText(t *testing.T) {
 		{
 			name: "Read Text (fail_extra)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"", ""},
-				Errs:       []error{errors.New("fail")},
+				Values: []string{"", ""},
+				Errs:   []error{errors.New("fail")},
 			},
 			isOptional:   true,
 			expectedData: "",
@@ -236,6 +236,199 @@ func TestReadText(t *testing.T) {
 	}
 }
 
+func TestReadTextSlice(t *testing.T) {
+	tests := []struct {
+		name         string
+		tui          *mocks.MockTUI
+		regex        string
+		isOptional   bool
+		expectedData []string
+		expectedErr  error
+	}{
+		{
+			name: "ReadTextSlice (pass)",
+			tui: &mocks.MockTUI{
+				SliceValues: [][]string{{"foo"}},
+				Errs:        nil,
+			},
+			expectedData: []string{"foo"},
+			expectedErr:  nil,
+		},
+		{
+			name: "ReadTextSlice (fail)",
+			tui: &mocks.MockTUI{
+				SliceValues: [][]string{{"foo"}},
+				Errs:        []error{errors.New("fail")},
+			},
+			expectedData: nil,
+			expectedErr:  errors.New("failure in ReadTextSlice: fail"),
+		},
+		{
+			name: "ReadTextSlice  (fail_optional)",
+			tui: &mocks.MockTUI{
+				SliceValues: [][]string{{""}},
+				Errs:        nil,
+			},
+			isOptional:   false,
+			expectedData: nil,
+			expectedErr:  errors.New("failure in ReadTextSlice: input is mandatory"),
+		},
+		{
+			name: "ReadTextSlice (fail_regex)",
+			tui: &mocks.MockTUI{
+				SliceValues: [][]string{{"foo@"}},
+				Errs:        nil,
+			},
+			regex:        KindClusterRegex,
+			expectedData: nil,
+			expectedErr:  errors.New("failure in ReadTextSlice: input foo@ does not match regex ^[a-z0-9]{1}[a-z0-9-]{0,30}[a-z0-9]{1}$; "),
+		},
+		{
+			name: "ReadTextSlice (fail_extra)",
+			tui: &mocks.MockTUI{
+				SliceValues: [][]string{{"g", ""}},
+				Errs:        []error{errors.New("fail")},
+			},
+			isOptional:   true,
+			expectedData: nil,
+			expectedErr:  errors.New("failure in ReadTextSlice: fail"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			Tui = tt.tui
+
+			data, err := ReadTextSlice("", "", "", tt.regex, tt.isOptional)
+			if !reflect.DeepEqual(data, tt.expectedData) {
+				t.Errorf("expected (%s), got (%s)", tt.expectedData, data)
+			}
+			if err != nil && err.Error() != tt.expectedErr.Error() {
+				t.Errorf("expected error (%v), got error (%v)", tt.expectedErr, err)
+			}
+		})
+	}
+}
+
+func TestReadIntSlice(t *testing.T) {
+	tests := []struct {
+		name         string
+		tui          *mocks.MockTUI
+		isOptional   bool
+		expectedData []int
+		expectedErr  error
+	}{
+		{
+			name: "ReadIntSlice (pass)",
+			tui: &mocks.MockTUI{
+				SliceValues: [][]string{{"1"}},
+				Errs:        nil,
+			},
+			expectedData: []int{1},
+			expectedErr:  nil,
+		},
+		{
+			name: "ReadIntSlice (fail)",
+			tui: &mocks.MockTUI{
+				SliceValues: [][]string{{"1"}},
+				Errs:        []error{errors.New("fail")},
+			},
+			expectedData: nil,
+			expectedErr:  errors.New("failure in ReadIntSlice: fail"),
+		},
+		{
+			name: "ReadIntSlice (fail non-integer)",
+			tui: &mocks.MockTUI{
+				SliceValues: [][]string{{"foo"}},
+			},
+			expectedData: nil,
+			expectedErr:  errors.New("failure in ReadIntSlice: input foo is not an integer"),
+		},
+		{
+			name: "ReadIntSlice (fail_optional)",
+			tui: &mocks.MockTUI{
+				SliceValues: [][]string{{""}},
+				Errs:        nil,
+			},
+			isOptional:   false,
+			expectedData: nil,
+			expectedErr:  errors.New("failure in ReadIntSlice: input is mandatory"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			Tui = tt.tui
+
+			data, err := ReadIntSlice("", "", tt.isOptional)
+			if !reflect.DeepEqual(data, tt.expectedData) {
+				t.Errorf("expected (%v), got (%v)", tt.expectedData, data)
+			}
+			if err != nil && err.Error() != tt.expectedErr.Error() {
+				t.Errorf("expected error (%v), got error (%v)", tt.expectedErr, err)
+			}
+		})
+	}
+}
+
+func TestReadURLSlice(t *testing.T) {
+	tests := []struct {
+		name         string
+		tui          *mocks.MockTUI
+		isOptional   bool
+		expectedData []string
+		expectedErr  error
+	}{
+		{
+			name: "ReadURLSlice (pass)",
+			tui: &mocks.MockTUI{
+				SliceValues: [][]string{{"https://foo.com"}},
+				Errs:        nil,
+			},
+			expectedData: []string{"https://foo.com"},
+			expectedErr:  nil,
+		},
+		{
+			name: "ReadURLSlice (fail)",
+			tui: &mocks.MockTUI{
+				SliceValues: [][]string{{"https://foo.com"}},
+				Errs:        []error{errors.New("fail")},
+			},
+			expectedData: nil,
+			expectedErr:  errors.New("failure in ReadURLSlice: fail"),
+		},
+		{
+			name: "ReadURLSlice (fail non-url)",
+			tui: &mocks.MockTUI{
+				SliceValues: [][]string{{"fff"}},
+			},
+			expectedData: nil,
+			expectedErr:  errors.New(`failure in ReadURLSlice: invalid: parse "fff": invalid URI for request`),
+		},
+		{
+			name: "ReadURLSlice (fail_optional)",
+			tui: &mocks.MockTUI{
+				SliceValues: [][]string{{""}},
+				Errs:        nil,
+			},
+			isOptional:   false,
+			expectedData: nil,
+			expectedErr:  errors.New("failure in ReadURLSlice: input is mandatory"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			Tui = tt.tui
+
+			data, err := ReadURLSlice("", "", "invalid", tt.isOptional)
+			if !reflect.DeepEqual(data, tt.expectedData) {
+				t.Errorf("expected (%v), got (%v)", tt.expectedData, data)
+			}
+			if err != nil && err.Error() != tt.expectedErr.Error() {
+				t.Errorf("expected error (%v), got error (%v)", tt.expectedErr, err)
+			}
+		})
+	}
+}
+
 func TestReadDomains(t *testing.T) {
 	subtests := []struct {
 		name         string
@@ -249,7 +442,7 @@ func TestReadDomains(t *testing.T) {
 		{
 			name: "ReadDomains (pass_spectro)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"spectrocloud.dev"},
+				Values: []string{"spectrocloud.dev"},
 			},
 			maxVals:      1,
 			expectedData: "spectrocloud.dev",
@@ -283,7 +476,7 @@ func TestReadDomainsOrIPs(t *testing.T) {
 		{
 			name: "ReadDomainsOrIPs (IP pass)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"10.10.10.10"},
+				Values: []string{"10.10.10.10"},
 			},
 			maxVals:      1,
 			expectedData: "10.10.10.10",
@@ -291,8 +484,8 @@ func TestReadDomainsOrIPs(t *testing.T) {
 		{
 			name: "ReadDomainsOrIPs (IP fail)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"10.10.10.10.10"},
-				Errs:       []error{errors.New("fail")},
+				Values: []string{"10.10.10.10.10"},
+				Errs:   []error{errors.New("fail")},
 			},
 			maxVals:      1,
 			expectedData: "10.10.10.10.10",
@@ -301,7 +494,7 @@ func TestReadDomainsOrIPs(t *testing.T) {
 		{
 			name: "ReadDomainsOrIPs (Domain pass basic)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"vcenter.spectrocloud.dev"},
+				Values: []string{"vcenter.spectrocloud.dev"},
 			},
 			maxVals:      1,
 			expectedData: "vcenter.spectrocloud.dev",
@@ -309,7 +502,7 @@ func TestReadDomainsOrIPs(t *testing.T) {
 		{
 			name: "ReadDomainsOrIPs (Domain pass long)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"0.lab.vcenter.spectrocloud.dev"},
+				Values: []string{"0.lab.vcenter.spectrocloud.dev"},
 			},
 			maxVals:      1,
 			expectedData: "0.lab.vcenter.spectrocloud.dev",
@@ -317,7 +510,7 @@ func TestReadDomainsOrIPs(t *testing.T) {
 		{
 			name: "ReadDomainsOrIPs (Domain pass long with dashes)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"0.lab.v-center.spectro-cloud.dev"},
+				Values: []string{"0.lab.v-center.spectro-cloud.dev"},
 			},
 			maxVals:      1,
 			expectedData: "0.lab.v-center.spectro-cloud.dev",
@@ -325,7 +518,7 @@ func TestReadDomainsOrIPs(t *testing.T) {
 		{
 			name: "ReadDomainsOrIPs (Domain pass short)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"to.io"},
+				Values: []string{"to.io"},
 			},
 			maxVals:      1,
 			expectedData: "to.io",
@@ -333,7 +526,7 @@ func TestReadDomainsOrIPs(t *testing.T) {
 		{
 			name: "ReadDomainsOrIPs (Domain pass dashes)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"ps-vcenter-02.ps.labs.local"},
+				Values: []string{"ps-vcenter-02.ps.labs.local"},
 			},
 			maxVals:      1,
 			expectedData: "ps-vcenter-02.ps.labs.local",
@@ -341,7 +534,7 @@ func TestReadDomainsOrIPs(t *testing.T) {
 		{
 			name: "ReadDomainsOrIPs (Domain pass multiple sub-domains)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"vcenter.spectrocloud.foo.bar.baz.dev"},
+				Values: []string{"vcenter.spectrocloud.foo.bar.baz.dev"},
 			},
 			maxVals:      1,
 			expectedData: "vcenter.spectrocloud.foo.bar.baz.dev",
@@ -349,8 +542,8 @@ func TestReadDomainsOrIPs(t *testing.T) {
 		{
 			name: "ReadDomainsOrIPs (Domain fail leading dash)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"-vcenter.spectrocloud.dev"},
-				Errs:       []error{errors.New("fail")},
+				Values: []string{"-vcenter.spectrocloud.dev"},
+				Errs:   []error{errors.New("fail")},
 			},
 			maxVals:      1,
 			errMsg:       "invalid domain",
@@ -360,8 +553,8 @@ func TestReadDomainsOrIPs(t *testing.T) {
 		{
 			name: "ReadDomainsOrIPs (Domain fail trailing dash)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"vcenter.spectrocloud.dev-"},
-				Errs:       []error{errors.New("fail")},
+				Values: []string{"vcenter.spectrocloud.dev-"},
+				Errs:   []error{errors.New("fail")},
 			},
 			maxVals:      1,
 			errMsg:       "invalid domain",
@@ -371,8 +564,8 @@ func TestReadDomainsOrIPs(t *testing.T) {
 		{
 			name: "ReadDomainsOrIPs (Domain fail consecutive dashes)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"vcenter.spectro--cloud.dev"},
-				Errs:       []error{errors.New("fail")},
+				Values: []string{"vcenter.spectro--cloud.dev"},
+				Errs:   []error{errors.New("fail")},
 			},
 			maxVals:      1,
 			errMsg:       "invalid domain",
@@ -382,8 +575,8 @@ func TestReadDomainsOrIPs(t *testing.T) {
 		{
 			name: "ReadDomainsOrIPs (Domain fail dot dash)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"vcenter.-spectrocloud.dev"},
-				Errs:       []error{errors.New("fail")},
+				Values: []string{"vcenter.-spectrocloud.dev"},
+				Errs:   []error{errors.New("fail")},
 			},
 			maxVals:      1,
 			errMsg:       "invalid domain",
@@ -393,8 +586,8 @@ func TestReadDomainsOrIPs(t *testing.T) {
 		{
 			name: "ReadDomainsOrIPs (Domain fail dash dot)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"vcenter-.spectrocloud.dev"},
-				Errs:       []error{errors.New("fail")},
+				Values: []string{"vcenter-.spectrocloud.dev"},
+				Errs:   []error{errors.New("fail")},
 			},
 			maxVals:      1,
 			errMsg:       "invalid domain",
@@ -404,8 +597,8 @@ func TestReadDomainsOrIPs(t *testing.T) {
 		{
 			name: "ReadDomainsOrIPs (Domain fail invalid char)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"vcenter.spectro*cloud.dev"},
-				Errs:       []error{errors.New("fail")},
+				Values: []string{"vcenter.spectro*cloud.dev"},
+				Errs:   []error{errors.New("fail")},
 			},
 			maxVals:      1,
 			errMsg:       "invalid domain",
@@ -415,18 +608,18 @@ func TestReadDomainsOrIPs(t *testing.T) {
 		{
 			name: "ReadDomainsOrIPs (fail_optional)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{""},
+				Values: []string{""},
 			},
 			maxVals:      1,
 			isOptional:   false,
-			errMsg:       InputMandatoryError.Error(),
+			errMsg:       ErrInputMandatory.Error(),
 			expectedData: "",
 			expectedErr:  errors.New("failure in ReadDomainsOrIPs: input is mandatory"),
 		},
 		{
 			name: "ReadDomainsOrIPs (pass_max_vals)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"foo.com,bar.io,baz.ca"},
+				Values: []string{"foo.com,bar.io,baz.ca"},
 			},
 			maxVals:      3,
 			isOptional:   false,
@@ -435,7 +628,7 @@ func TestReadDomainsOrIPs(t *testing.T) {
 		{
 			name: "ReadDomainsOrIPs (fail_max_vals)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"foo.com,bar.io"},
+				Values: []string{"foo.com,bar.io"},
 			},
 			maxVals:      1,
 			isOptional:   false,
@@ -446,8 +639,8 @@ func TestReadDomainsOrIPs(t *testing.T) {
 		{
 			name: "ReadDomainsOrIPs (fail_extra)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"", ""},
-				Errs:       []error{errors.New("fail")},
+				Values: []string{"", ""},
+				Errs:   []error{errors.New("fail")},
 			},
 			isOptional:  true,
 			maxVals:     1,
@@ -456,7 +649,7 @@ func TestReadDomainsOrIPs(t *testing.T) {
 		{
 			name: "ReadDomainsOrIPs (pass_spectro)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"spectrocloud.dev"},
+				Values: []string{"spectrocloud.dev"},
 			},
 			maxVals:      1,
 			expectedData: "spectrocloud.dev",
@@ -497,53 +690,53 @@ func TestReadNoProxy(t *testing.T) {
 		{
 			name: "Read No Proxy (pass DefaultNoProxy)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{defaultNoProxy},
+				Values: []string{defaultNoProxy},
 			},
 			expectedData: defaultNoProxy,
 		},
 		{
 			name: "Read No Proxy (pass IP)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"10.10.10.10"},
+				Values: []string{"10.10.10.10"},
 			},
 			expectedData: "10.10.10.10",
 		},
 		{
 			name: "Read No Proxy (pass IP port)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"10.10.10.10:80"},
+				Values: []string{"10.10.10.10:80"},
 			},
 			expectedData: "10.10.10.10:80",
 		},
 		{
 			name: "Read No Proxy (pass CIDR)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"10.10.10.10/24"},
+				Values: []string{"10.10.10.10/24"},
 			},
 			expectedData: "10.10.10.10/24",
 		},
 		{
 			name: "Read No Proxy (pass domain w/ leading period)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{".vcenter.spectrocloud.dev"},
+				Values: []string{".vcenter.spectrocloud.dev"},
 			},
 			expectedData: ".vcenter.spectrocloud.dev",
 		},
 		{
 			name: "Read No Proxy (pass exception)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"localhost"},
+				Values: []string{"localhost"},
 			},
 			expectedData: "localhost",
 		},
 		{
 			name: "Read No Proxy (fail_validation)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"abc"},
-				Errs:       []error{errors.New("fail")},
+				Values: []string{"abc"},
+				Errs:   []error{errors.New("fail")},
 			},
 			expectedData: "abc",
-			expectedErr:  ValidationError,
+			expectedErr:  ErrValidationFailed,
 		},
 	}
 	for _, subtest := range subtests {
@@ -572,8 +765,8 @@ func TestReadK8sName(t *testing.T) {
 		{
 			name: "Read K8sName (pass)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"foo"},
-				Errs:       nil,
+				Values: []string{"foo"},
+				Errs:   nil,
 			},
 			expectedData: "foo",
 			expectedErr:  nil,
@@ -581,8 +774,8 @@ func TestReadK8sName(t *testing.T) {
 		{
 			name: "Read K8sName (fail)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"foo"},
-				Errs:       []error{errors.New("fail")},
+				Values: []string{"foo"},
+				Errs:   []error{errors.New("fail")},
 			},
 			expectedData: "foo",
 			expectedErr:  errors.New("failure in ReadK8sName: fail"),
@@ -590,8 +783,8 @@ func TestReadK8sName(t *testing.T) {
 		{
 			name: "Read K8sName (fail_name)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{".invalidName"},
-				Errs:       nil,
+				Values: []string{".invalidName"},
+				Errs:   nil,
 			},
 			expectedData: ".invalidName",
 			expectedErr:  errors.New("failure in ReadK8sName: name part must consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character (e.g. 'MyName',  or 'my.name',  or '123-abc', regex used for validation is '([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]')"),
@@ -599,8 +792,8 @@ func TestReadK8sName(t *testing.T) {
 		{
 			name: "Read K8sName (fail_name2)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"UPPER"},
-				Errs:       nil,
+				Values: []string{"UPPER"},
+				Errs:   nil,
 			},
 			expectedData: "UPPER",
 			expectedErr:  errors.New("failure in ReadK8sName: a lowercase RFC 1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character (e.g. 'example.com', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')"),
@@ -608,8 +801,8 @@ func TestReadK8sName(t *testing.T) {
 		{
 			name: "Read K8sName (fail_len)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"aaaaaaaaaa-aaaaaaaaaa-aaaaaaaaaa-aaaaaaaaaa-aaaaaaaaaa-aaaaaaaaaa"},
-				Errs:       nil,
+				Values: []string{"aaaaaaaaaa-aaaaaaaaaa-aaaaaaaaaa-aaaaaaaaaa-aaaaaaaaaa-aaaaaaaaaa"},
+				Errs:   nil,
 			},
 			expectedData: "aaaaaaaaaa-aaaaaaaaaa-aaaaaaaaaa-aaaaaaaaaa-aaaaaaaaaa-aaaaaaaaaa",
 			expectedErr:  errors.New("failure in ReadK8sName: name part must be no more than 63 characters"),
@@ -617,8 +810,8 @@ func TestReadK8sName(t *testing.T) {
 		{
 			name: "Read K8sName (optional_not_provided)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{""},
-				Errs:       nil,
+				Values: []string{""},
+				Errs:   nil,
 			},
 			isOptional:   true,
 			expectedData: "",
@@ -627,11 +820,11 @@ func TestReadK8sName(t *testing.T) {
 		{
 			name: "Read K8sName (fail_optional)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{""},
-				Errs:       nil,
+				Values: []string{""},
+				Errs:   nil,
 			},
 			isOptional:   false,
-			errMsg:       InputMandatoryError.Error(),
+			errMsg:       ErrInputMandatory.Error(),
 			expectedData: "",
 			expectedErr:  errors.New("failure in ReadK8sName: input is mandatory"),
 		},
@@ -664,8 +857,8 @@ func TestReadPassword(t *testing.T) {
 		{
 			name: "Read Password (pass)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"foo"},
-				Errs:       nil,
+				Values: []string{"foo"},
+				Errs:   nil,
 			},
 			expectedData: "foo",
 			expectedErr:  nil,
@@ -673,8 +866,8 @@ func TestReadPassword(t *testing.T) {
 		{
 			name: "Read Password (fail)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"foo"},
-				Errs:       []error{errors.New("fail")},
+				Values: []string{"foo"},
+				Errs:   []error{errors.New("fail")},
 			},
 			expectedData: "foo",
 			expectedErr:  errors.New("failure in ReadPassword: fail"),
@@ -682,8 +875,8 @@ func TestReadPassword(t *testing.T) {
 		{
 			name: "Read Password (fail_len)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"foo"},
-				Errs:       nil,
+				Values: []string{"foo"},
+				Errs:   nil,
 			},
 			maxLen:       2,
 			expectedData: "foo",
@@ -716,8 +909,8 @@ func TestSemVer(t *testing.T) {
 		{
 			name: "ReadSemVer (fail)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"0.0.1"},
-				Errs:       []error{errors.New("fail")},
+				Values: []string{"0.0.1"},
+				Errs:   []error{errors.New("fail")},
 			},
 			errMsg:       "invalid Helm chart version",
 			expectedData: "0.0.1",
@@ -726,8 +919,8 @@ func TestSemVer(t *testing.T) {
 		{
 			name: "ReadSemVer (pass)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"v0.0.1"},
-				Errs:       nil,
+				Values: []string{"v0.0.1"},
+				Errs:   nil,
 			},
 			expectedData: "v0.0.1",
 			expectedErr:  nil,
@@ -760,8 +953,8 @@ func TestReadTextRegex(t *testing.T) {
 		{
 			name: "Read TextRegex (pass)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"foo"},
-				Errs:       nil,
+				Values: []string{"foo"},
+				Errs:   nil,
 			},
 			regexPattern: KindClusterRegex,
 			expectedData: "foo",
@@ -770,8 +963,8 @@ func TestReadTextRegex(t *testing.T) {
 		{
 			name: "Read TextRegex (fail)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"foo"},
-				Errs:       []error{errors.New("fail")},
+				Values: []string{"foo"},
+				Errs:   []error{errors.New("fail")},
 			},
 			regexPattern: KindClusterRegex,
 			expectedData: "foo",
@@ -780,8 +973,8 @@ func TestReadTextRegex(t *testing.T) {
 		{
 			name: "Read TextRegex (fail_regex)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"foo@"},
-				Errs:       nil,
+				Values: []string{"foo@"},
+				Errs:   nil,
 			},
 			regexPattern: KindClusterRegex,
 			expectedData: "foo@",
@@ -791,8 +984,8 @@ func TestReadTextRegex(t *testing.T) {
 		{
 			name: "Read TextRegex (fail_regex_long)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"fffffffffffffffffffffffffffffffff"},
-				Errs:       nil,
+				Values: []string{"fffffffffffffffffffffffffffffffff"},
+				Errs:   nil,
 			},
 			regexPattern: KindClusterRegex,
 			expectedData: "fffffffffffffffffffffffffffffffff",
@@ -802,8 +995,8 @@ func TestReadTextRegex(t *testing.T) {
 		{
 			name: "Read TextRegex (fail_regex_first_char_alpha)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"-ff"},
-				Errs:       nil,
+				Values: []string{"-ff"},
+				Errs:   nil,
 			},
 			regexPattern: KindClusterRegex,
 			expectedData: "-ff",
@@ -813,8 +1006,8 @@ func TestReadTextRegex(t *testing.T) {
 		{
 			name: "Read TextRegex (fail_regex_last_char_alpha)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"ff-"},
-				Errs:       nil,
+				Values: []string{"ff-"},
+				Errs:   nil,
 			},
 			regexPattern: KindClusterRegex,
 			expectedData: "ff-",
@@ -824,8 +1017,8 @@ func TestReadTextRegex(t *testing.T) {
 		{
 			name: "Read TextRegex (fail_regex_short)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"f"},
-				Errs:       nil,
+				Values: []string{"f"},
+				Errs:   nil,
 			},
 			regexPattern: KindClusterRegex,
 			expectedData: "f",
@@ -835,8 +1028,8 @@ func TestReadTextRegex(t *testing.T) {
 		{
 			name: "Read TextRegex (invalid_regex)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"abc"},
-				Errs:       nil,
+				Values: []string{"abc"},
+				Errs:   nil,
 			},
 			regexPattern: "?!",
 			errMsg:       "fail",
@@ -846,8 +1039,8 @@ func TestReadTextRegex(t *testing.T) {
 		{
 			name: "Read TextRegex (invalid_input)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{""},
-				Errs:       nil,
+				Values: []string{""},
+				Errs:   nil,
 			},
 			regexPattern: "",
 			expectedData: "",
@@ -883,8 +1076,8 @@ func TestReadURLRegex(t *testing.T) {
 		{
 			name: "ReadURLRegex (pass)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"https://company-maas.com/MAAS"},
-				Errs:       nil,
+				Values: []string{"https://company-maas.com/MAAS"},
+				Errs:   nil,
 			},
 			regexPattern: MaasApiRegex,
 			expectedData: "https://company-maas.com/MAAS",
@@ -893,8 +1086,8 @@ func TestReadURLRegex(t *testing.T) {
 		{
 			name: "ReadURLRegex (fail)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"foo"},
-				Errs:       []error{errors.New("fail")},
+				Values: []string{"foo"},
+				Errs:   []error{errors.New("fail")},
 			},
 			regexPattern: MaasApiRegex,
 			errMsg:       "invalid MAAS URL",
@@ -904,7 +1097,7 @@ func TestReadURLRegex(t *testing.T) {
 		{
 			name: "ReadURLRegex (fail_url)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"company-maas.com/MAAS"},
+				Values: []string{"company-maas.com/MAAS"},
 			},
 			regexPattern: MaasApiRegex,
 			expectedData: "company-maas.com/MAAS",
@@ -914,8 +1107,8 @@ func TestReadURLRegex(t *testing.T) {
 		{
 			name: "ReadURLRegex (fail_regex)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"foo@"},
-				Errs:       nil,
+				Values: []string{"foo@"},
+				Errs:   nil,
 			},
 			regexPattern: MaasApiRegex,
 			errMsg:       "error",
@@ -925,8 +1118,8 @@ func TestReadURLRegex(t *testing.T) {
 		{
 			name: "ReadURLRegex (invalid_regex)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"abc"},
-				Errs:       nil,
+				Values: []string{"abc"},
+				Errs:   nil,
 			},
 			regexPattern: "?!",
 			errMsg:       "fail",
@@ -959,8 +1152,8 @@ func TestSelect(t *testing.T) {
 		{
 			name: "Select (pass)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"foo"},
-				Errs:       nil,
+				Values: []string{"foo"},
+				Errs:   nil,
 			},
 			expectedData: "foo",
 			expectedErr:  nil,
@@ -968,8 +1161,8 @@ func TestSelect(t *testing.T) {
 		{
 			name: "Select (fail)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"foo"},
-				Errs:       []error{errors.New("fail")},
+				Values: []string{"foo"},
+				Errs:   []error{errors.New("fail")},
 			},
 			expectedData: "",
 			expectedErr:  errors.New("failure in Select: fail"),
@@ -987,7 +1180,7 @@ func TestSelect(t *testing.T) {
 		t.Run(subtest.name, func(t *testing.T) {
 			Tui = subtest.tui
 
-			data, err := Select(subtest.name, subtest.tui.ReturnVals)
+			data, err := Select(subtest.name, subtest.tui.Values)
 			if !reflect.DeepEqual(data, subtest.expectedData) {
 				t.Errorf("expected (%s), got (%s)", subtest.expectedData, data)
 			}
@@ -1012,8 +1205,8 @@ func TestSelectID(t *testing.T) {
 		{
 			name: "SelectID (pass)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"zero"},
-				Errs:       nil,
+				Values: []string{"zero"},
+				Errs:   nil,
 			},
 			options:      options,
 			expectedData: zero,
@@ -1022,8 +1215,8 @@ func TestSelectID(t *testing.T) {
 		{
 			name: "SelectID (fail)",
 			tui: &mocks.MockTUI{
-				ReturnVals: []string{"zero"},
-				Errs:       []error{errors.New("fail")},
+				Values: []string{"zero"},
+				Errs:   []error{errors.New("fail")},
 			},
 			options:      options,
 			expectedData: nil,
@@ -1072,7 +1265,7 @@ func TestValidateNoProxy(t *testing.T) {
 		{
 			name:        "ValidateNoProxy (fail)",
 			noProxy:     "notanoproxy",
-			expectedErr: ValidationError,
+			expectedErr: ErrValidationFailed,
 		},
 	}
 	for _, subtest := range subtests {
@@ -1143,7 +1336,7 @@ func TestValidateJson(t *testing.T) {
 		{
 			name:        "ValidateJson (fail)",
 			json:        `{"key": "value"`,
-			expectedErr: ValidationError,
+			expectedErr: ErrValidationFailed,
 		},
 	}
 
@@ -1176,7 +1369,7 @@ func TestValidateSSHPublicKey(t *testing.T) {
 		{
 			name:        "ValidateSSHPublicKey (fail)",
 			sshKey:      "ssh-ed25519 invalid",
-			expectedErr: ValidationError,
+			expectedErr: ErrValidationFailed,
 		},
 	}
 
