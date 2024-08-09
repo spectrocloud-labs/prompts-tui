@@ -7,6 +7,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+// MockTUI is a mock implementation of the TUI interface for testing purposes.
 type MockTUI struct {
 	Values        []string
 	SliceValues   [][]string
@@ -15,7 +16,8 @@ type MockTUI struct {
 	validateSlice func([]string) error
 }
 
-func (m *MockTUI) GetBool(prompt string, defaultVal bool) (bool, error) {
+// GetBool returns the next value in the Values slice as a bool.
+func (m *MockTUI) GetBool(_ string, defaultVal bool) (bool, error) {
 	val, err := m.run()
 	if err != nil {
 		return false, err
@@ -30,21 +32,24 @@ func (m *MockTUI) GetBool(prompt string, defaultVal bool) (bool, error) {
 	return val == "y", err
 }
 
-func (m *MockTUI) GetText(prompt, defaultVal, mask string, optional bool, validate func(string) error) (string, error) {
+// GetText returns the next value in the Values slice as a string.
+func (m *MockTUI) GetText(_, _, _ string, _ bool, validate func(string) error) (string, error) {
 	if validate != nil {
 		m.validate = validate
 	}
 	return m.run()
 }
 
-func (m *MockTUI) GetTextSlice(prompt, defaultVal string, optional bool, validate func([]string) error) ([]string, error) {
+// GetTextSlice returns the next value in the SliceValues slice as a []string.
+func (m *MockTUI) GetTextSlice(_, _ string, _ bool, validate func([]string) error) ([]string, error) {
 	if validate != nil {
 		m.validateSlice = validate
 	}
 	return m.runSlice()
 }
 
-func (m *MockTUI) GetSelection(prompt string, options []string) (string, error) {
+// GetSelection returns the next value in the Values slice as a string.
+func (m *MockTUI) GetSelection(_ string, options []string) (string, error) {
 	val, err := m.run()
 	if err != nil {
 		return val, err
@@ -55,7 +60,8 @@ func (m *MockTUI) GetSelection(prompt string, options []string) (string, error) 
 	return val, nil
 }
 
-func (m *MockTUI) GetMultiSelection(prompt string, options []string, minSelections int) ([]string, error) {
+// GetMultiSelection returns the next minSelections values in the Values slice as a []string.
+func (m *MockTUI) GetMultiSelection(_ string, _ []string, minSelections int) ([]string, error) {
 	vals := make([]string, 0)
 	for i := 0; i < minSelections; i++ {
 		val, err := m.run()
