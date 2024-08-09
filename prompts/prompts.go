@@ -1,3 +1,5 @@
+// Package prompts contains helper functions for prompting users for input via the command line.
+// It is a lightweight wrapper around the pterm library for writing text-based user interfaces.
 package prompts
 
 import (
@@ -32,16 +34,25 @@ const (
 )
 
 var (
-	// Exported to enable monkey-patching
+	// Tui is exported to enable monkey-patching.
 	Tui TUI = PtermTUI{}
 
+	// ErrValidationFailed is returned when input validation fails.
 	ErrValidationFailed = errors.New("validation failed")
-	ErrInputMandatory   = errors.New("input is mandatory")
+
+	// ErrInputMandatory is returned when mandatory input is missing.
+	ErrInputMandatory = errors.New("input is mandatory")
 
 	// Exported regex patterns for use with ReadTextRegex
+
+	// KindClusterRegex is a regex pattern for validating a kind cluster name.
 	KindClusterRegex = "^[a-z0-9]{1}[a-z0-9-]{0,30}[a-z0-9]{1}$"
+
+	// ArtifactRefRegex is a regex pattern for validating an OCI artifact reference.
 	ArtifactRefRegex = "^[a-z0-9_.\\-\\/]+(:.*)?(@sha256:.*)?$"
-	UUIDRegex        = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+
+	// UUIDRegex is a regex pattern for validating a UUID.
+	UUIDRegex = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
 
 	noProxyExceptions  = []string{"*", "localhost", "kubernetes"}
 	domainRegex        = regexp.MustCompile("^" + domain + "$")
@@ -51,6 +62,7 @@ var (
 	ipPortRegex        = regexp.MustCompile("^" + ip + port + "$")
 )
 
+// TUI is a text-user-interface for eliciting user input.
 type TUI interface {
 	GetBool(prompt string, defaultVal bool) (bool, error)
 	GetText(prompt, defaultVal, mask string, optional bool, validate func(string) error) (string, error)
@@ -59,6 +71,7 @@ type TUI interface {
 	GetMultiSelection(prompt string, options []string, minSelections int) ([]string, error)
 }
 
+// PtermTUI is a text-user-interface implementation using the pterm library.
 type PtermTUI struct{}
 
 // GetBool prompts a bool from the user while automatically appending a ? character to the end of the prompt message.
@@ -70,15 +83,18 @@ func (p PtermTUI) GetBool(prompt string, defaultVal bool) (bool, error) {
 		Show()
 }
 
+// GetText prompts a string from the user with optional validation.
+// If the default value is >60 characters, multiline input with tab completion is used.
+// Otherwise, single line input with enter completion is used.
 func (p PtermTUI) GetText(prompt, defaultVal, mask string, optional bool, validate func(string) error) (string, error) {
 	for {
 		if optional {
 			prompt = fmt.Sprintf("%s (optional, hit enter to skip)", prompt)
 		}
 
-		// workaround for https://github.com/pterm/pterm/issues/560:
-		// inputs longer than the terminal width are handled better with
-		// multiline enabled, but the prompt is still repeated after every key press
+		// Workaround for https://github.com/pterm/pterm/issues/560:
+		// Inputs longer than the terminal width are handled better with
+		// multiline enabled, but the prompt is still repeated after every key press.
 		var multiline bool
 		if len(defaultVal) > 60 {
 			multiline = true
@@ -102,6 +118,7 @@ func (p PtermTUI) GetText(prompt, defaultVal, mask string, optional bool, valida
 	}
 }
 
+// GetTextSlice prompts a slice of strings from the user with optional validation.
 func (p PtermTUI) GetTextSlice(prompt, defaultVal string, optional bool, validate func([]string) error) ([]string, error) {
 	for {
 		if optional {
@@ -135,6 +152,7 @@ func (p PtermTUI) GetTextSlice(prompt, defaultVal string, optional bool, validat
 	}
 }
 
+// GetSelection prompts the user to select an option from a list of options.
 func (p PtermTUI) GetSelection(prompt string, options []string) (string, error) {
 	return pterm.DefaultInteractiveSelect.
 		WithDefaultText(prompt).
@@ -143,6 +161,7 @@ func (p PtermTUI) GetSelection(prompt string, options []string) (string, error) 
 		Show()
 }
 
+// GetMultiSelection prompts the user to select multiple options from a list of options.
 func (p PtermTUI) GetMultiSelection(prompt string, options []string, minSelections int) ([]string, error) {
 	for {
 		selections, err := pterm.DefaultInteractiveMultiselect.
@@ -152,7 +171,6 @@ func (p PtermTUI) GetMultiSelection(prompt string, options []string, minSelectio
 		if err != nil {
 			return nil, err
 		}
-
 		if len(selections) < minSelections {
 			logger.Info("Minimum selection required", logger.Args(minSelections))
 			continue
@@ -165,6 +183,7 @@ func (p PtermTUI) GetMultiSelection(prompt string, options []string, minSelectio
 // Selection
 // ---------
 
+// ChoiceItem is a struct representing a selectable item.
 type ChoiceItem struct {
 	ID   string
 	Name string
@@ -174,6 +193,7 @@ func exit() {
 	logger.Fatal("Exiting CLI...")
 }
 
+// Select prompts the user to select a single option from a list of options.
 func Select(prompt string, options []string) (string, error) {
 	if len(options) == 0 {
 		return "", fmt.Errorf("failure in Select: no options available: %s", prompt)
@@ -185,6 +205,9 @@ func Select(prompt string, options []string) (string, error) {
 	return choice, nil
 }
 
+// SelectID prompts the user to select an item from a list of ChoiceItems.
+// Useful for presenting a pretty name to the user, but obtaining an ID
+// associated with the pretty name.
 func SelectID(prompt string, items []ChoiceItem) (*ChoiceItem, error) {
 	if len(items) == 0 {
 		return nil, fmt.Errorf("failure in SelectID: no options available: %s", prompt)
@@ -207,6 +230,7 @@ func SelectID(prompt string, items []ChoiceItem) (*ChoiceItem, error) {
 	return optionsMap[choice], nil
 }
 
+// MultiSelect prompts the user to select at least n options from a list of options.
 func MultiSelect(prompt string, options []string, minSelections int) ([]string, error) {
 	if len(options) == 0 {
 		return nil, fmt.Errorf("failure in MultiSelect: no options available: %s", prompt)
@@ -222,6 +246,7 @@ func MultiSelect(prompt string, options []string, minSelections int) ([]string, 
 // Input
 // -----
 
+// ReadBool prompts the user to enter a boolean value.
 func ReadBool(prompt string, defaultVal bool) (bool, error) {
 	b, err := Tui.GetBool(prompt, defaultVal)
 	if err != nil {
@@ -230,6 +255,7 @@ func ReadBool(prompt string, defaultVal bool) (bool, error) {
 	return b, nil
 }
 
+// ReadInt prompts the user to enter an integer value with optional min and max values.
 func ReadInt(prompt, defaultVal string, minVal, maxVal int) (int, error) {
 	validate := func(input string) error {
 		i, err := strconv.Atoi(input)
@@ -251,6 +277,7 @@ func ReadInt(prompt, defaultVal string, minVal, maxVal int) (int, error) {
 	return strconv.Atoi(s)
 }
 
+// ReadText prompts the user to enter a string value, optionally with a maximum length.
 func ReadText(label, defaultVal string, optional bool, maxLen int) (string, error) {
 	s, err := Tui.GetText(label, defaultVal, "", optional, validateStringFunc(optional, maxLen))
 	if err != nil {
@@ -259,6 +286,7 @@ func ReadText(label, defaultVal string, optional bool, maxLen int) (string, erro
 	return strings.TrimSpace(s), nil
 }
 
+// ReadTextSlice prompts the user to enter a slice of strings with optional regex validation.
 func ReadTextSlice(label, defaultVal, errMsg, regexPattern string, optional bool) ([]string, error) {
 	validate := func(input []string) error {
 		if !optional {
@@ -287,7 +315,8 @@ func ReadTextSlice(label, defaultVal, errMsg, regexPattern string, optional bool
 	return s, nil
 }
 
-func ReadTextSliceCustom(label, defaultVal, errMsg string, optional bool, validate func(input []string) error) ([]string, error) {
+// ReadTextSliceCustom prompts the user to enter a slice of strings with custom validation.
+func ReadTextSliceCustom(label, defaultVal string, optional bool, validate func(input []string) error) ([]string, error) {
 	s, err := Tui.GetTextSlice(label, defaultVal, optional, validate)
 	if err != nil {
 		return nil, errors.Wrap(err, "failure in ReadTextSliceCustom")
@@ -295,6 +324,7 @@ func ReadTextSliceCustom(label, defaultVal, errMsg string, optional bool, valida
 	return s, nil
 }
 
+// ReadIntSlice prompts the user to enter a slice of integers.
 func ReadIntSlice(label, defaultVal string, optional bool) ([]int, error) {
 	validate := func(input []string) error {
 		if !optional {
@@ -327,6 +357,7 @@ func ReadIntSlice(label, defaultVal string, optional bool) ([]int, error) {
 	return ints, nil
 }
 
+// ReadURLSlice prompts the user to enter a slice of URLs.
 func ReadURLSlice(label, defaultVal, errMsg string, optional bool) ([]string, error) {
 	validate := func(input []string) error {
 		if !optional {
@@ -352,6 +383,7 @@ func ReadURLSlice(label, defaultVal, errMsg string, optional bool) ([]string, er
 	return s, nil
 }
 
+// ReadTextRegex prompts the user to enter a string value with regex validation.
 func ReadTextRegex(label, defaultVal, errMsg, regexPattern string) (string, error) {
 	validate := func(input string) error {
 		if input == "" {
@@ -370,6 +402,7 @@ func ReadTextRegex(label, defaultVal, errMsg, regexPattern string) (string, erro
 	return s, nil
 }
 
+// ReadSemVer prompts the user to enter a semantic version.
 func ReadSemVer(label, defaultVal, errMsg string) (string, error) {
 	validate := func(input string) error {
 		if input == "" {
@@ -391,6 +424,8 @@ func ReadSemVer(label, defaultVal, errMsg string) (string, error) {
 	return s, nil
 }
 
+// ReadPassword prompts the user to enter a password with an optional maximum length.
+// User input is masked with the '*' character.
 func ReadPassword(label, defaultVal string, optional bool, maxLen int) (string, error) {
 	s, err := Tui.GetText(label, defaultVal, "*", optional, validateStringFunc(optional, maxLen))
 	if err != nil {
@@ -399,6 +434,8 @@ func ReadPassword(label, defaultVal string, optional bool, maxLen int) (string, 
 	return s, nil
 }
 
+// ReadBasicCreds prompts the user to enter a username and password.
+// User input for the password is always masked and the username can optionally be masked.
 func ReadBasicCreds(usernamePrompt, passwordPrompt, defaultUsername, defaultPassword string, optional, maskUser bool) (string, string, error) {
 	var username string
 	var err error
@@ -422,14 +459,14 @@ func ReadBasicCreds(usernamePrompt, passwordPrompt, defaultUsername, defaultPass
 	return username, password, nil
 }
 
+// ReadURL prompts the user to enter a URL.
 func ReadURL(label, defaultVal, errMsg string, optional bool) (string, error) {
 	validate := func(input string) error {
 		if input == "" {
 			if !optional {
 				return ErrInputMandatory
-			} else {
-				return nil
 			}
+			return nil
 		}
 		return validateURL(input, errMsg)
 	}
@@ -443,6 +480,7 @@ func ReadURL(label, defaultVal, errMsg string, optional bool) (string, error) {
 	return s, nil
 }
 
+// ReadURLRegex prompts the user to enter a URL with additional regex validation.
 func ReadURLRegex(label, defaultVal, errMsg, regexPattern string) (string, error) {
 	validate := func(input string) error {
 		if err := validateRegex(input, errMsg, regexPattern); err != nil {
@@ -460,14 +498,15 @@ func ReadURLRegex(label, defaultVal, errMsg, regexPattern string) (string, error
 	return s, nil
 }
 
+// ReadDomains prompts the user to enter a comma-separated string of FQDNs,
+// optionally with a maximum number of values.
 func ReadDomains(label, defaultVal, errMsg string, optional bool, maxVals int) (string, error) {
 	validate := func(input string) error {
 		if input == "" {
 			if !optional {
 				return ErrInputMandatory
-			} else {
-				return nil
 			}
+			return nil
 		}
 		vals := strings.Split(input, ",")
 		if maxVals > 0 && len(vals) > maxVals {
@@ -488,14 +527,15 @@ func ReadDomains(label, defaultVal, errMsg string, optional bool, maxVals int) (
 	return s, nil
 }
 
+// ReadIPs prompts the user to enter a comma-separated string of IPv4 or IPv6 addresses,
+// optionally with a maximum number of values.
 func ReadIPs(label, defaultVal, errMsg string, optional bool, maxVals int) (string, error) {
 	validate := func(input string) error {
 		if input == "" {
 			if !optional {
 				return ErrInputMandatory
-			} else {
-				return nil
 			}
+			return nil
 		}
 		vals := strings.Split(input, ",")
 		if maxVals > 0 && len(vals) > maxVals {
@@ -516,14 +556,15 @@ func ReadIPs(label, defaultVal, errMsg string, optional bool, maxVals int) (stri
 	return s, nil
 }
 
+// ReadDomainsOrIPs prompts the user to enter a comma-separated string of FQDNs or IPv4/IPv6
+// addresses, optionally with a maximum number of values.
 func ReadDomainsOrIPs(label, defaultVal, errMsg string, optional bool, maxVals int) (string, error) {
 	validate := func(input string) error {
 		if input == "" {
 			if !optional {
 				return ErrInputMandatory
-			} else {
-				return nil
 			}
+			return nil
 		}
 		vals := strings.Split(input, ",")
 		if maxVals > 0 && len(vals) > maxVals {
@@ -548,14 +589,14 @@ func ReadDomainsOrIPs(label, defaultVal, errMsg string, optional bool, maxVals i
 	return s, nil
 }
 
+// ReadDomainOrIPNoPort prompts the user to enter an FQDN or an IPv4/IPv6 address without a port.
 func ReadDomainOrIPNoPort(label, defaultVal, errMsg string, optional bool) (string, error) {
 	validate := func(input string) error {
 		if input == "" {
 			if !optional {
 				return ErrInputMandatory
-			} else {
-				return nil
 			}
+			return nil
 		}
 
 		ip := net.ParseIP(input)
@@ -573,14 +614,15 @@ func ReadDomainOrIPNoPort(label, defaultVal, errMsg string, optional bool) (stri
 	return s, nil
 }
 
+// ReadCIDRs prompts the user to enter a comma-separated string of CIDR blocks,
+// optionally with a maximum number of values.
 func ReadCIDRs(label, defaultVal, errMsg string, optional bool, maxVals int) (string, error) {
 	validate := func(input string) error {
 		if input == "" {
 			if !optional {
 				return ErrInputMandatory
-			} else {
-				return nil
 			}
+			return nil
 		}
 		vals := strings.Split(input, ",")
 		if maxVals > 0 && len(vals) > maxVals {
@@ -601,14 +643,15 @@ func ReadCIDRs(label, defaultVal, errMsg string, optional bool, maxVals int) (st
 	return s, nil
 }
 
+// ReadFilePath prompts the user to enter a fully qualified path for a file on the
+// local file system.
 func ReadFilePath(label, defaultVal, errMsg string, optional bool) (string, error) {
 	validate := func(input string) error {
 		if input == "" {
 			if !optional {
 				return ErrInputMandatory
-			} else {
-				return nil
 			}
+			return nil
 		}
 		fileInfo, err := os.Stat(input)
 		if err != nil {
@@ -627,6 +670,8 @@ func ReadFilePath(label, defaultVal, errMsg string, optional bool) (string, erro
 	return s, nil
 }
 
+// ReadK8sName prompts the user to enter a string which is a valid Kubernetes name.
+// Inputs must be both a Kubernetes "qualified name" and compliant with DNS (RFC 1123).
 func ReadK8sName(label, defaultVal string, optional bool) (string, error) {
 	validate := func(input string) error {
 		if err := validateStringFunc(optional, -1)(input); err != nil {
@@ -642,6 +687,9 @@ func ReadK8sName(label, defaultVal string, optional bool) (string, error) {
 	return s, nil
 }
 
+// ReadCACert loads and validates a CA certificate from the local file system when caCertPathOverride is provided.
+// Otherwise, the user is prompted to enter a CA certificate path and the certificate at that path is loaded and
+// validated.
 func ReadCACert(prompt string, defaultCaCertPath, caCertPathOverride string) (caCertPath string, caCertName string, caCertData []byte, err error) {
 	if caCertPathOverride != "" {
 		caCertPath = caCertPathOverride
@@ -705,6 +753,7 @@ func validateURL(input, errMsg string) error {
 	return nil
 }
 
+// ValidateNoProxy validates input for the NO_PROXY environment variable.
 // See: https://pkg.go.dev/golang.org/x/net/http/httpproxy#Config
 func ValidateNoProxy(s string) error {
 	if s == "" {
@@ -729,6 +778,7 @@ func ValidateNoProxy(s string) error {
 	return ErrValidationFailed
 }
 
+// ValidateSSHPublicKey validates that the input string is an SSH public key.
 func ValidateSSHPublicKey(s string) error {
 	if s == "" {
 		return nil
@@ -741,7 +791,8 @@ func ValidateSSHPublicKey(s string) error {
 	return nil
 }
 
-func ValidateJson(s string) error {
+// ValidateJSON validates that the input string is valid JSON.
+func ValidateJSON(s string) error {
 	if s == "" {
 		return nil
 	}

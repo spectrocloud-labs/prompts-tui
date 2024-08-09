@@ -5,7 +5,7 @@
 
 # binary versions
 BIN_DIR ?= ./bin
-GOLANGCI_VERSION ?= 1.55.2
+GOLANGCI_VERSION ?= 1.59.1
 
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)

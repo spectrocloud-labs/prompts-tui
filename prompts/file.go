@@ -13,8 +13,10 @@ import (
 )
 
 var (
-	editorBinary   = "vi"
-	editorPath     = ""
+	editorBinary = "vi"
+	editorPath   = ""
+
+	// GetCmdExecutor allows monkey-patching the command executor for testing purposes.
 	GetCmdExecutor = getEditorExecutor
 )
 

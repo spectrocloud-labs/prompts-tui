@@ -364,7 +364,7 @@ func TestReadTextSliceCustom(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			Tui = tt.tui
 
-			data, err := ReadTextSliceCustom("", "", "", tt.isOptional, tt.validate)
+			data, err := ReadTextSliceCustom("", "", tt.isOptional, tt.validate)
 			if !reflect.DeepEqual(data, tt.expectedData) {
 				t.Errorf("expected (%s), got (%s)", tt.expectedData, data)
 			}
@@ -375,6 +375,7 @@ func TestReadTextSliceCustom(t *testing.T) {
 	}
 }
 
+// nolint:dupl
 func TestReadIntSlice(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -435,6 +436,7 @@ func TestReadIntSlice(t *testing.T) {
 	}
 }
 
+// nolint:dupl
 func TestReadURLSlice(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -1129,7 +1131,7 @@ func TestReadTextRegex(t *testing.T) {
 }
 
 func TestReadURLRegex(t *testing.T) {
-	MaasApiRegex := "^.*\\/MAAS$"
+	maasAPIRegex := "^.*\\/MAAS$"
 
 	subtests := []struct {
 		name         string
@@ -1145,7 +1147,7 @@ func TestReadURLRegex(t *testing.T) {
 				Values: []string{"https://company-maas.com/MAAS"},
 				Errs:   nil,
 			},
-			regexPattern: MaasApiRegex,
+			regexPattern: maasAPIRegex,
 			expectedData: "https://company-maas.com/MAAS",
 			expectedErr:  nil,
 		},
@@ -1155,7 +1157,7 @@ func TestReadURLRegex(t *testing.T) {
 				Values: []string{"foo"},
 				Errs:   []error{errors.New("fail")},
 			},
-			regexPattern: MaasApiRegex,
+			regexPattern: maasAPIRegex,
 			errMsg:       "invalid MAAS URL",
 			expectedData: "foo",
 			expectedErr:  errors.New("failure in ReadURLRegex: input foo does not match regex ^.*\\/MAAS$; invalid MAAS URL"),
@@ -1165,7 +1167,7 @@ func TestReadURLRegex(t *testing.T) {
 			tui: &mocks.MockTUI{
 				Values: []string{"company-maas.com/MAAS"},
 			},
-			regexPattern: MaasApiRegex,
+			regexPattern: maasAPIRegex,
 			expectedData: "company-maas.com/MAAS",
 			errMsg:       "fail",
 			expectedErr:  errors.New("failure in ReadURLRegex: fail: parse \"company-maas.com/MAAS\": invalid URI for request"),
@@ -1176,7 +1178,7 @@ func TestReadURLRegex(t *testing.T) {
 				Values: []string{"foo@"},
 				Errs:   nil,
 			},
-			regexPattern: MaasApiRegex,
+			regexPattern: maasAPIRegex,
 			errMsg:       "error",
 			expectedData: "foo@",
 			expectedErr:  errors.New("failure in ReadURLRegex: input foo@ does not match regex ^.*\\/MAAS$; error"),
@@ -1383,24 +1385,24 @@ func TestArtifactRefRegex(t *testing.T) {
 	}
 }
 
-func TestValidateJson(t *testing.T) {
+func TestValidateJSON(t *testing.T) {
 	subtests := []struct {
 		name        string
 		json        string
 		expectedErr error
 	}{
 		{
-			name:        "ValidateJson (empty_string)",
+			name:        "ValidateJSON (empty_string)",
 			json:        "",
 			expectedErr: nil,
 		},
 		{
-			name:        "ValidateJson (pass)",
+			name:        "ValidateJSON (pass)",
 			json:        `{"key": "value"}`,
 			expectedErr: nil,
 		},
 		{
-			name:        "ValidateJson (fail)",
+			name:        "ValidateJSON (fail)",
 			json:        `{"key": "value"`,
 			expectedErr: ErrValidationFailed,
 		},
@@ -1408,7 +1410,7 @@ func TestValidateJson(t *testing.T) {
 
 	for _, subtest := range subtests {
 		t.Run(subtest.name, func(t *testing.T) {
-			err := ValidateJson(subtest.json)
+			err := ValidateJSON(subtest.json)
 			if err != nil && err.Error() != subtest.expectedErr.Error() {
 				t.Errorf("expected error (%v), got error (%v)", subtest.expectedErr, err)
 			}
