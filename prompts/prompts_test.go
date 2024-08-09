@@ -309,6 +309,72 @@ func TestReadTextSlice(t *testing.T) {
 	}
 }
 
+func TestReadTextSliceCustom(t *testing.T) {
+	tests := []struct {
+		name         string
+		tui          *mocks.MockTUI
+		validate     func([]string) error
+		isOptional   bool
+		expectedData []string
+		expectedErr  error
+	}{
+		{
+			name: "ReadTextSliceCustom (pass)",
+			tui: &mocks.MockTUI{
+				SliceValues: [][]string{{"foo"}},
+				Errs:        nil,
+			},
+			validate:     nil,
+			expectedData: []string{"foo"},
+			expectedErr:  nil,
+		},
+		{
+			name: "ReadTextSliceCustom (pass)",
+			tui: &mocks.MockTUI{
+				SliceValues: [][]string{{"foo"}},
+				Errs:        nil,
+			},
+			validate:     nil,
+			expectedData: []string{"foo"},
+			expectedErr:  nil,
+		},
+		{
+			name: "ReadTextSliceCustom (fail)",
+			tui: &mocks.MockTUI{
+				SliceValues: [][]string{{"foo"}},
+				Errs:        []error{errors.New("fail")},
+			},
+			validate:     nil,
+			expectedData: nil,
+			expectedErr:  errors.New("failure in ReadTextSliceCustom: fail"),
+		},
+		{
+			name: "ReadTextSliceCustom  (fail_optional)",
+			tui: &mocks.MockTUI{
+				SliceValues: [][]string{{""}},
+				Errs:        nil,
+			},
+			isOptional:   false,
+			validate:     nil,
+			expectedData: []string{""},
+			expectedErr:  errors.New("failure in ReadTextSliceCustom: input is mandatory"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			Tui = tt.tui
+
+			data, err := ReadTextSliceCustom("", "", "", tt.isOptional, tt.validate)
+			if !reflect.DeepEqual(data, tt.expectedData) {
+				t.Errorf("expected (%s), got (%s)", tt.expectedData, data)
+			}
+			if err != nil && err.Error() != tt.expectedErr.Error() {
+				t.Errorf("expected error (%v), got error (%v)", tt.expectedErr, err)
+			}
+		})
+	}
+}
+
 func TestReadIntSlice(t *testing.T) {
 	tests := []struct {
 		name         string

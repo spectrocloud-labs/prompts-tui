@@ -287,6 +287,14 @@ func ReadTextSlice(label, defaultVal, errMsg, regexPattern string, optional bool
 	return s, nil
 }
 
+func ReadTextSliceCustom(label, defaultVal, errMsg string, optional bool, validate func(input []string) error) ([]string, error) {
+	s, err := Tui.GetTextSlice(label, defaultVal, optional, validate)
+	if err != nil {
+		return nil, errors.Wrap(err, "failure in ReadTextSliceCustom")
+	}
+	return s, nil
+}
+
 func ReadIntSlice(label, defaultVal string, optional bool) ([]int, error) {
 	validate := func(input []string) error {
 		if !optional {
