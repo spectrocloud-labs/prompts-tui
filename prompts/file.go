@@ -103,7 +103,7 @@ func EditFileValidatedByLine(prompt, content, separator string, lineValidate fun
 		}
 		lines := strings.Split(string(partsBytes), "\n")
 
-		finalLines, err := stripCommentsAndValidateLines(lines, lineValidate)
+		finalLines, err := FilterLines(lines, lineValidate)
 		if err != nil && errors.Is(err, ErrValidationFailed) {
 			// for integration tests, return the error
 			if os.Getenv("IS_TEST") == "true" {
@@ -138,7 +138,7 @@ func EditFileValidatedByFullContent(prompt, content string, fileValidate func(co
 		}
 		lines := strings.Split(string(partsBytes), "\n")
 
-		finalLines, _ := stripCommentsAndValidateLines(lines, nil)
+		finalLines, _ := FilterLines(lines, nil)
 		content := strings.Join(finalLines, "\n")
 		if fileValidate != nil {
 			if err = fileValidate(content); err != nil {
@@ -163,21 +163,22 @@ func EditFileValidatedByFullContent(prompt, content string, fileValidate func(co
 	}
 }
 
-// parses lines of a file, skips comments and optionally validating each line
-func stripCommentsAndValidateLines(lines []string, lineValidate func(input string) error) ([]string, error) {
-	finalLines := make([]string, 0)
+// FilterLines filters a list of lines from a file. Comment lines (starting with '#') and
+// any line matching an optional validation function are removed.
+func FilterLines(lines []string, validate func(input string) error) ([]string, error) {
+	out := make([]string, 0)
 
 	for _, l := range lines {
 		l = strings.TrimSpace(l)
 		if l != "" && !strings.HasPrefix(l, "#") {
-			if lineValidate != nil {
-				if err := lineValidate(l); err != nil {
-					return finalLines, err
+			if validate != nil {
+				if err := validate(l); err != nil {
+					return out, err
 				}
 			}
-			finalLines = append(finalLines, l)
+			out = append(out, l)
 		}
 	}
 
-	return finalLines, nil
+	return out, nil
 }
