@@ -614,6 +614,40 @@ func ReadDomainOrIPNoPort(label, defaultVal, errMsg string, optional bool) (stri
 	return s, nil
 }
 
+// ReadDomainsOrIPsOrURLs prompts the user to enter a comma-separated string of FQDNs or IPv4/IPv6
+// addresses or URLs, optionally with a maximum number of values.
+func ReadDomainsOrIPsOrURLs(label, defaultVal, errMsg string, optional bool, maxVals int) (string, error) {
+	validate := func(input string) error {
+		if input == "" {
+			if !optional {
+				return ErrInputMandatory
+			}
+			return nil
+		}
+		vals := strings.Split(input, ",")
+		if maxVals > 0 && len(vals) > maxVals {
+			return fmt.Errorf("%s: maximum domains or IPs or URLs: %d", errMsg, maxVals)
+		}
+		for _, v := range vals {
+			ip := net.ParseIP(v)
+			isIPWithPort := ipPortRegex.Match([]byte(v))
+			isDomain := domainRegex.Match([]byte(v)) && validateDomain(v)
+			isURL := validateURL(input, errMsg) == nil
+			if ip != nil || isIPWithPort || isDomain || isURL {
+				continue
+			}
+			return fmt.Errorf("%s: %s is neither an IP, IP:port, an FQDN, nor a URL", errMsg, v)
+		}
+		return nil
+	}
+
+	s, err := Tui.GetText(label, defaultVal, "", optional, validate)
+	if err != nil {
+		return s, errors.Wrap(err, "failure in ReadDomainsOrIPsOrURLs")
+	}
+	return s, nil
+}
+
 // ReadCIDRs prompts the user to enter a comma-separated string of CIDR blocks,
 // optionally with a maximum number of values.
 func ReadCIDRs(label, defaultVal, errMsg string, optional bool, maxVals int) (string, error) {

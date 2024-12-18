@@ -531,6 +531,261 @@ func TestReadDomains(t *testing.T) {
 	}
 }
 
+func TestReadDomainsOrIPsOrURLs(t *testing.T) {
+	subtests := []struct {
+		name         string
+		tui          *mocks.MockTUI
+		errMsg       string
+		isOptional   bool
+		maxVals      int
+		expectedData string
+		expectedErr  error
+	}{
+		{
+			name: "TestURL (pass)",
+			tui: &mocks.MockTUI{
+				Values: []string{"https://foo.com"},
+				Errs:   nil,
+			},
+			maxVals:      1,
+			expectedData: "https://foo.com",
+			expectedErr:  nil,
+		},
+		{
+			name: "ReadURL (fail)",
+			tui: &mocks.MockTUI{
+				Values: []string{"https://foo.com"},
+				Errs:   []error{errors.New("fail")},
+			},
+			maxVals:      1,
+			expectedData: "https://foo.com",
+			expectedErr:  errors.New("failure in ReadDomainsOrIPsOrURLs: fail"),
+		},
+		{
+			name: "ReadDomainsOrIPsOrURLs (fail non-url)",
+			tui: &mocks.MockTUI{
+				Values: []string{"fff"},
+			},
+			maxVals:      1,
+			expectedData: "fff",
+			expectedErr:  errors.New(`failure in ReadDomainsOrIPsOrURLs: : fff is neither an IP, IP:port, an FQDN, nor a URL`),
+		},
+		{
+			name: "ReadURLSlice (fail_optional)",
+			tui: &mocks.MockTUI{
+				Values: []string{""},
+				Errs:   nil,
+			},
+			maxVals:      1,
+			isOptional:   false,
+			expectedData: "",
+			expectedErr:  errors.New("failure in ReadDomainsOrIPsOrURLs: input is mandatory"),
+		},
+		{
+			name: "ReadIP (IP pass)",
+			tui: &mocks.MockTUI{
+				Values: []string{"10.10.10.10"},
+			},
+			maxVals:      1,
+			expectedData: "10.10.10.10",
+		},
+		{
+			name: "ReadIP (IP fail)",
+			tui: &mocks.MockTUI{
+				Values: []string{"10.10.10.10.10"},
+				Errs:   []error{errors.New("fail")},
+			},
+			maxVals:      1,
+			expectedData: "10.10.10.10.10",
+			expectedErr:  errors.New("failure in ReadDomainsOrIPsOrURLs: fail"),
+		},
+		{
+			name: "ReadURL (Domain pass basic)",
+			tui: &mocks.MockTUI{
+				Values: []string{"http://vcenter.spectrocloud.dev"},
+			},
+			maxVals:      1,
+			expectedData: "http://vcenter.spectrocloud.dev",
+		},
+		{
+			name: "ReadDomain (Domain pass basic)",
+			tui: &mocks.MockTUI{
+				Values: []string{"vcenter.spectrocloud.dev"},
+			},
+			maxVals:      1,
+			expectedData: "vcenter.spectrocloud.dev",
+		},
+		{
+			name: "ReadDomain (Domain pass long)",
+			tui: &mocks.MockTUI{
+				Values: []string{"0.lab.vcenter.spectrocloud.dev"},
+			},
+			maxVals:      1,
+			expectedData: "0.lab.vcenter.spectrocloud.dev",
+		},
+		{
+			name: "ReadDomain (Domain pass long with dashes)",
+			tui: &mocks.MockTUI{
+				Values: []string{"0.lab.v-center.spectro-cloud.dev"},
+			},
+			maxVals:      1,
+			expectedData: "0.lab.v-center.spectro-cloud.dev",
+		},
+		{
+			name: "ReadDomain (Domain pass short)",
+			tui: &mocks.MockTUI{
+				Values: []string{"to.io"},
+			},
+			maxVals:      1,
+			expectedData: "to.io",
+		},
+		{
+			name: "ReadDomain (Domain pass dashes)",
+			tui: &mocks.MockTUI{
+				Values: []string{"ps-vcenter-02.ps.labs.local"},
+			},
+			maxVals:      1,
+			expectedData: "ps-vcenter-02.ps.labs.local",
+		},
+		{
+			name: "ReadDomains (Domain pass multiple sub-domains)",
+			tui: &mocks.MockTUI{
+				Values: []string{"vcenter.spectrocloud.foo.bar.baz.dev"},
+			},
+			maxVals:      1,
+			expectedData: "vcenter.spectrocloud.foo.bar.baz.dev",
+		},
+		{
+			name: "ReadDomain (Domain fail leading dash)",
+			tui: &mocks.MockTUI{
+				Values: []string{"-vcenter.spectrocloud.dev"},
+				Errs:   []error{errors.New("fail")},
+			},
+			maxVals:      1,
+			errMsg:       "invalid domain",
+			expectedData: "-vcenter.spectrocloud.dev",
+			expectedErr:  errors.New("failure in ReadDomainsOrIPsOrURLs: invalid domain: -vcenter.spectrocloud.dev is neither an IP, IP:port, an FQDN, nor a URL"),
+		},
+		{
+			name: "ReadDomain (Domain fail trailing dash)",
+			tui: &mocks.MockTUI{
+				Values: []string{"vcenter.spectrocloud.dev-"},
+				Errs:   []error{errors.New("fail")},
+			},
+			maxVals:      1,
+			errMsg:       "invalid domain",
+			expectedData: "vcenter.spectrocloud.dev-",
+			expectedErr:  errors.New("failure in ReadDomainsOrIPsOrURLs: invalid domain: vcenter.spectrocloud.dev- is neither an IP, IP:port, an FQDN, nor a URL"),
+		},
+		{
+			name: "ReadDomain (Domain fail consecutive dashes)",
+			tui: &mocks.MockTUI{
+				Values: []string{"vcenter.spectro--cloud.dev"},
+				Errs:   []error{errors.New("fail")},
+			},
+			maxVals:      1,
+			errMsg:       "invalid domain",
+			expectedData: "vcenter.spectro--cloud.dev",
+			expectedErr:  errors.New("failure in ReadDomainsOrIPsOrURLs: invalid domain: vcenter.spectro--cloud.dev is neither an IP, IP:port, an FQDN, nor a URL"),
+		},
+		{
+			name: "ReadDomain (Domain fail dot dash)",
+			tui: &mocks.MockTUI{
+				Values: []string{"vcenter.-spectrocloud.dev"},
+				Errs:   []error{errors.New("fail")},
+			},
+			maxVals:      1,
+			errMsg:       "invalid domain",
+			expectedData: "vcenter.-spectrocloud.dev",
+			expectedErr:  errors.New("failure in ReadDomainsOrIPsOrURLs: invalid domain: vcenter.-spectrocloud.dev is neither an IP, IP:port, an FQDN, nor a URL"),
+		},
+		{
+			name: "ReadDomain (Domain fail dash dot)",
+			tui: &mocks.MockTUI{
+				Values: []string{"vcenter-.spectrocloud.dev"},
+				Errs:   []error{errors.New("fail")},
+			},
+			maxVals:      1,
+			errMsg:       "invalid domain",
+			expectedData: "vcenter-.spectrocloud.dev",
+			expectedErr:  errors.New("failure in ReadDomainsOrIPsOrURLs: invalid domain: vcenter-.spectrocloud.dev is neither an IP, IP:port, an FQDN, nor a URL"),
+		},
+		{
+			name: "ReadDomain (Domain fail invalid char)",
+			tui: &mocks.MockTUI{
+				Values: []string{"vcenter.spectro*cloud.dev"},
+				Errs:   []error{errors.New("fail")},
+			},
+			maxVals:      1,
+			errMsg:       "invalid domain",
+			expectedData: "vcenter.spectro*cloud.dev",
+			expectedErr:  errors.New("failure in ReadDomainsOrIPsOrURLs: invalid domain: vcenter.spectro*cloud.dev is neither an IP, IP:port, an FQDN, nor a URL"),
+		},
+		{
+			name: "ReadDomainsOrIPsOrURLs (fail_optional)",
+			tui: &mocks.MockTUI{
+				Values: []string{""},
+			},
+			maxVals:      1,
+			isOptional:   false,
+			errMsg:       ErrInputMandatory.Error(),
+			expectedData: "",
+			expectedErr:  errors.New("failure in ReadDomainsOrIPsOrURLs: input is mandatory"),
+		},
+		{
+			name: "ReadDomainsOrIPsOrURLs (pass_max_vals)",
+			tui: &mocks.MockTUI{
+				Values: []string{"foo.com,bar.io,baz.ca"},
+			},
+			maxVals:      3,
+			isOptional:   false,
+			expectedData: "foo.com,bar.io,baz.ca",
+		},
+		{
+			name: "ReadDomainsOrIPsOrURLs (fail_max_vals)",
+			tui: &mocks.MockTUI{
+				Values: []string{"foo.com,bar.io"},
+			},
+			maxVals:      1,
+			isOptional:   false,
+			errMsg:       "invalid domains or IPs",
+			expectedData: "foo.com,bar.io",
+			expectedErr:  errors.New("failure in ReadDomainsOrIPsOrURLs: invalid domains or IPs: maximum domains or IPs or URLs: 1"),
+		},
+		{
+			name: "ReadDomainsOrIPsOrURLs (fail_extra)",
+			tui: &mocks.MockTUI{
+				Values: []string{"", ""},
+				Errs:   []error{errors.New("fail")},
+			},
+			isOptional:  true,
+			maxVals:     1,
+			expectedErr: errors.New("failure in ReadDomainsOrIPsOrURLs: fail"),
+		},
+		{
+			name: "ReadDomainsOrIPs (pass_spectro)",
+			tui: &mocks.MockTUI{
+				Values: []string{"spectrocloud.dev"},
+			},
+			maxVals:      1,
+			expectedData: "spectrocloud.dev",
+		},
+	}
+	for _, subtest := range subtests {
+		t.Run(subtest.name, func(t *testing.T) {
+			Tui = subtest.tui
+
+			data, err := ReadDomainsOrIPsOrURLs("", "", subtest.errMsg, subtest.isOptional, subtest.maxVals)
+			if !reflect.DeepEqual(data, subtest.expectedData) {
+				t.Errorf("expected (%s), got (%s)", subtest.expectedData, data)
+			}
+			if err != nil && err.Error() != subtest.expectedErr.Error() {
+				t.Errorf("expected error (%v), got error (%v)", subtest.expectedErr, err)
+			}
+		})
+	}
+}
+
 func TestReadDomainsOrIPs(t *testing.T) {
 	subtests := []struct {
 		name         string
