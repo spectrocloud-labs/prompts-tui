@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pterm/pterm"
 	"github.com/spectrocloud-labs/prompts-tui/prompts/mocks"
 )
 
@@ -181,4 +182,25 @@ func FilterLines(lines []string, validate func(input string) error) ([]string, e
 	}
 
 	return out, nil
+}
+
+// RemoveFile prompts a user whether they want to remove a file. Removes the file if the user wants
+// it to be removed. If no error is encountered, prints a message telling the user the result. In
+// case of error, does not print any further message and returns the error to be handled by caller.
+func RemoveFile(path string, defaultVal bool) error {
+	remove, err := ReadBool(fmt.Sprintf("Remove file %s from disk", path), defaultVal)
+	if err != nil {
+		return err
+	}
+
+	if remove {
+		if err := os.Remove(path); err != nil {
+			return err
+		}
+		pterm.Info.Println("File removed.")
+	} else {
+		pterm.Info.Println("File kept.")
+	}
+
+	return nil
 }
