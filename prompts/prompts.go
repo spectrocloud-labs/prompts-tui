@@ -743,6 +743,10 @@ func ReadCACert(prompt string, defaultCaCertPath, caCertPathOverride string) (ca
 	if err != nil {
 		return "", "", nil, err
 	}
+
+	// trim the whitespace around cert value
+	caBytes = []byte(strings.TrimSpace(string(caBytes)))
+
 	// Validate CA cert
 	var blocks []byte
 	rest := caBytes
