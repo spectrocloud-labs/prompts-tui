@@ -513,7 +513,7 @@ func ReadDomains(label, defaultVal, errMsg string, optional bool, maxVals int) (
 			return fmt.Errorf("%s: maximum domains: %d", errMsg, maxVals)
 		}
 		for _, v := range vals {
-			if !(domainRegex.Match([]byte(v)) && validateDomain(v)) {
+			if !domainRegex.Match([]byte(v)) || !validateDomain(v) {
 				return errors.New(errMsg)
 			}
 		}
