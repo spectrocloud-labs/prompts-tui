@@ -1,12 +1,12 @@
 module github.com/spectrocloud-labs/prompts-tui
 
-go 1.22.3
+go 1.25.8
 
 require (
 	emperror.dev/errors v0.8.1
 	github.com/Masterminds/semver v1.5.0
 	github.com/pterm/pterm v0.12.79
-	golang.org/x/crypto v0.23.0
+	golang.org/x/crypto v0.52.0
 	golang.org/x/exp v0.0.0-20240529005216-23cca8864a10
 	k8s.io/apimachinery v0.30.1
 )
@@ -25,8 +25,8 @@ require (
 	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/sys v0.20.0 // indirect
-	golang.org/x/term v0.20.0 // indirect
-	golang.org/x/text v0.15.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
+	golang.org/x/term v0.43.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
 	k8s.io/utils v0.0.0-20240102154912-e7106e64919e // indirect
 )

@@ -513,7 +513,7 @@ func ReadDomains(label, defaultVal, errMsg string, optional bool, maxVals int) (
 			return fmt.Errorf("%s: maximum domains: %d", errMsg, maxVals)
 		}
 		for _, v := range vals {
-			if !(domainRegex.Match([]byte(v)) && validateDomain(v)) {
+			if !domainRegex.Match([]byte(v)) || !validateDomain(v) {
 				return errors.New(errMsg)
 			}
 		}
@@ -743,6 +743,10 @@ func ReadCACert(prompt string, defaultCaCertPath, caCertPathOverride string) (ca
 	if err != nil {
 		return "", "", nil, err
 	}
+
+	// trim the whitespace around cert value
+	caBytes = []byte(strings.TrimSpace(string(caBytes)))
+
 	// Validate CA cert
 	var blocks []byte
 	rest := caBytes
