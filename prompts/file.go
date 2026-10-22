@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/pterm/pterm"
 	"github.com/spectrocloud-labs/prompts-tui/prompts/mocks"
@@ -32,20 +33,78 @@ func init() {
 		editorBinary = editor
 		logger.Debug(fmt.Sprintf("Detected EDITOR env var. Overrode default editor (vi) with %s.", editorBinary))
 	}
-	// VISUAL/EDITOR may contain arguments (e.g. "code -w"), so split the binary from its
-	// args before resolving it on PATH instead of looking up the whole string verbatim.
-	fields := strings.Fields(editorBinary)
+	// Try the whole value as a literal executable path first. This handles bare commands
+	// (e.g. "vi") and paths that themselves contain spaces with no arguments, such as macOS
+	// app bundle paths (e.g. "/Applications/Visual Studio Code.app/Contents/MacOS/Electron").
+	if path, err := exec.LookPath(editorBinary); err == nil {
+		editorPath = path
+		return
+	}
+
+	// Otherwise VISUAL/EDITOR is a command with arguments (e.g. "code -w"). Tokenize it with
+	// quote/escape awareness so a quoted path containing spaces still resolves correctly.
+	fields, err := splitEditorCommand(editorBinary)
+	if err != nil {
+		logger.Info(fmt.Sprintf("Error: unable to parse VISUAL/EDITOR value: %v", err))
+		os.Exit(1)
+	}
 	if len(fields) == 0 {
 		logger.Info("Error: VISUAL/EDITOR is set to an empty value. Either install vi or export VISUAL or EDITOR to an editor of your choosing.")
 		os.Exit(1)
 	}
-	var err error
 	editorPath, err = exec.LookPath(fields[0])
 	if err != nil {
 		logger.Info(fmt.Sprintf("Error: %s not found on PATH. Either install vi or export VISUAL or EDITOR to an editor of your choosing.", fields[0]))
 		os.Exit(1)
 	}
 	editorArgs = fields[1:]
+}
+
+// splitEditorCommand tokenizes an EDITOR/VISUAL value the way a shell would for word-splitting
+// purposes: fields are separated by whitespace, single and double quotes group a field together
+// (without further expansion), and a backslash escapes the following character. It returns an
+// error if a quote is left unterminated.
+func splitEditorCommand(s string) ([]string, error) {
+	runes := []rune(s)
+	var fields []string
+	var buf strings.Builder
+	var quote rune
+	wrote := false
+
+	for i := 0; i < len(runes); i++ {
+		c := runes[i]
+		switch {
+		case quote != 0:
+			if c == quote {
+				quote = 0
+			} else {
+				buf.WriteRune(c)
+			}
+		case c == '\'' || c == '"':
+			quote = c
+			wrote = true
+		case c == '\\' && i+1 < len(runes):
+			i++
+			buf.WriteRune(runes[i])
+			wrote = true
+		case unicode.IsSpace(c):
+			if wrote {
+				fields = append(fields, buf.String())
+				buf.Reset()
+				wrote = false
+			}
+		default:
+			buf.WriteRune(c)
+			wrote = true
+		}
+	}
+	if quote != 0 {
+		return nil, fmt.Errorf("unterminated %c quote in editor command", quote)
+	}
+	if wrote {
+		fields = append(fields, buf.String())
+	}
+	return fields, nil
 }
 
 func getEditorExecutor(editor, filename string) mocks.CommandExecutor {
