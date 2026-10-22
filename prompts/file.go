@@ -16,6 +16,7 @@ import (
 var (
 	editorBinary = "vi"
 	editorPath   = ""
+	editorArgs   []string
 
 	// GetCmdExecutor allows monkey-patching the command executor for testing purposes.
 	GetCmdExecutor = getEditorExecutor
@@ -31,16 +32,25 @@ func init() {
 		editorBinary = editor
 		logger.Debug(fmt.Sprintf("Detected EDITOR env var. Overrode default editor (vi) with %s.", editorBinary))
 	}
-	var err error
-	editorPath, err = exec.LookPath(editorBinary)
-	if err != nil {
-		logger.Info(fmt.Sprintf("Error: %s not found on PATH. Either install vi or export VISUAL or EDITOR to an editor of your choosing.", editorBinary))
+	// VISUAL/EDITOR may contain arguments (e.g. "code -w"), so split the binary from its
+	// args before resolving it on PATH instead of looking up the whole string verbatim.
+	fields := strings.Fields(editorBinary)
+	if len(fields) == 0 {
+		logger.Info("Error: VISUAL/EDITOR is set to an empty value. Either install vi or export VISUAL or EDITOR to an editor of your choosing.")
 		os.Exit(1)
 	}
+	var err error
+	editorPath, err = exec.LookPath(fields[0])
+	if err != nil {
+		logger.Info(fmt.Sprintf("Error: %s not found on PATH. Either install vi or export VISUAL or EDITOR to an editor of your choosing.", fields[0]))
+		os.Exit(1)
+	}
+	editorArgs = fields[1:]
 }
 
 func getEditorExecutor(editor, filename string) mocks.CommandExecutor {
-	cmd := exec.Command(editor, filename)
+	args := append(append([]string{}, editorArgs...), filename)
+	cmd := exec.Command(editor, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
