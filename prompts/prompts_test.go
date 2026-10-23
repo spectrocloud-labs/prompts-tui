@@ -2,6 +2,7 @@ package prompts
 
 import (
 	"errors"
+	"os/exec"
 	"reflect"
 	"regexp"
 	"strings"
@@ -1703,5 +1704,22 @@ func TestValidateSSHPublicKey(t *testing.T) {
 				t.Errorf("expected error (%v), got error (%v)", subtest.expectedErr, err)
 			}
 		})
+	}
+}
+
+func TestGetEditorExecutor(t *testing.T) {
+	cmd := GetCmdExecutor("/bin/sh", "/tmp/file")
+
+	if cmd == nil {
+		t.Fatal("expected a command executor, got nil")
+	}
+
+	// The filename must be the last argument so the editor opens the temp file.
+	args := cmd.(*exec.Cmd).Args
+	if len(args) < 2 {
+		t.Fatalf("expected at least 2 args, got %d: %v", len(args), args)
+	}
+	if last := args[len(args)-1]; last != "/tmp/file" {
+		t.Errorf("expected filename as final arg, got %q", last)
 	}
 }

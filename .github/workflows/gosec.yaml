@@ -1,0 +1,135 @@
+name: GoSec
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gosec-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GOSEC_VERSION: v2.30.0
+  REPORT: gosec-report.json
+
+jobs:
+  gosec-pr-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@7b8cf10d4e4a01d4992d18a89f4d7dc5a3e6d6f4 # v4.3.0
+        with:
+          go-version-file: go.mod
+
+      # gosec needs a resolved module graph to build type info for each package.
+      - name: download-modules
+        run: go mod download
+
+      - name: install-gosec
+        run: GOBIN="$RUNNER_TEMP/bin" go install "github.com/securego/gosec/v2/cmd/gosec@$GOSEC_VERSION"
+
+      - name: run-gosec-scan
+        run: |
+          # -no-fail so findings land in the report instead of aborting this step;
+          # check-result decides pass/fail.
+          "$RUNNER_TEMP/bin/gosec" -fmt=json -out="$REPORT" -no-fail ./...
+          echo "scanned $(jq -r '.Stats.files' "$REPORT") files"
+
+      - name: check-result
+        run: |
+          if [ ! -s "$REPORT" ]; then
+            echo "::error::$REPORT is missing or empty; the scan did not complete"
+            exit 1
+          fi
+
+          # No default here: a missing or null count is a malformed report, not a clean scan.
+          issues=$(jq -r '.Stats.found' "$REPORT")
+          case "$issues" in
+            ''|*[!0-9]*)
+              echo "::error::could not read a non-negative integer from .Stats.found in $REPORT (got: $issues)"
+              exit 1
+              ;;
+          esac
+
+          files=$(jq -r '.Stats.files' "$REPORT")
+          case "$files" in
+            ''|*[!0-9]*)
+              echo "::error::could not read a non-negative integer from .Stats.files in $REPORT (got: $files)"
+              exit 1
+              ;;
+          esac
+          if [ "$files" -eq 0 ]; then
+            echo "::error::gosec scanned 0 files; the module graph probably failed to load"
+            exit 1
+          fi
+
+          # -no-fail lets gosec finish when some packages cannot be type-checked. Those
+          # failures are recorded here rather than in .Stats, so a partial scan would
+          # otherwise pass with a plausible-looking file count.
+          golang_errors=$(jq -r '."Golang errors" // {} | length' "$REPORT")
+          if [ "$golang_errors" -gt 0 ]; then
+            files_with_errors=$(jq -r '."Golang errors" // {} | keys | map(select(. != "")) | length' "$REPORT")
+            # Errors with no source position land under an empty key; count them too, so a
+            # report whose only errors are fileless does not claim "0 file(s)".
+            fileless_errors=$(jq -r '."Golang errors" // {} | .[""] // [] | length' "$REPORT")
+            echo "::error::gosec reported type-check errors for ${files_with_errors} file(s) and ${fileless_errors} package(s) with no source position; the scan is incomplete"
+            # Emit one annotation per error. gosec absolutises paths, so strip the workspace
+            # prefix to match the finding annotations. The line is its own field, since
+            # file=path:line is not a valid position, and a reported line of 0 is not either.
+            # Fileless errors get a message-only command: GitHub rejects an empty file
+            # property. Both values are escaped, because a ',' in a property would be read
+            # as the next parameter and a newline would end the command early.
+            jq -r --arg root "$PWD" '
+              def esc_data: gsub("%"; "%25") | gsub("\r"; "%0D") | gsub("\n"; "%0A");
+              def esc_prop: esc_data | gsub(":"; "%3A") | gsub(","; "%2C");
+              def relative($r): if startswith($r) then .[($r | length) + 1:] else . end;
+              ."Golang errors" // {}
+              | to_entries[]
+              | .key as $f
+              | .value[]
+              | (.error // "" | esc_data) as $msg
+              | if $f == "" or $f == null
+                then "::error::\($msg)"
+                else "::error file=\($f | relative($root) | esc_prop)"
+                  + ",line=\(if (.line // 0) > 0 then .line else 1 end)::\($msg)"
+                end' "$REPORT"
+            exit 1
+          fi
+
+          {
+            echo "### gosec: ${issues} finding(s) across ${files} files"
+            jq -r '(.Issues // []) | group_by(.rule_id)[] | "- \(.[0].rule_id): \(length)"' "$REPORT"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "Found ${issues} issues in ${files} files"
+          echo "Issues by Rule ID"
+          jq -r '(.Issues // []) | group_by(.rule_id)[] | {rule: .[0].rule_id, count: length}' "$REPORT"
+
+          if [ "$issues" -gt 0 ]; then
+            echo "GoSec SAST scan failed with below findings..."
+            # .line may be a range ("43-46"); annotations need a numeric line plus endLine.
+            # Paths are absolutised by gosec, so strip the workspace prefix, and escape the
+            # property: a ',' would be read as another parameter, a newline would end the
+            # command. The message is escaped too, for the same reason.
+            jq -r --arg root "$PWD" '
+              def esc_data: gsub("%"; "%25") | gsub("\r"; "%0D") | gsub("\n"; "%0A");
+              def esc_prop: esc_data | gsub(":"; "%3A") | gsub(","; "%2C");
+              def relative($r): if startswith($r) then .[($r | length) + 1:] else . end;
+              (.Issues // [])[]
+              | (.line | tostring | split("-")) as $pos
+              | "::error file=\(.file | relative($root) | esc_prop)"
+                + ",line=\($pos[0])"
+                + (if ($pos | length) > 1 then ",endLine=\($pos[1])" else "" end)
+                + ",title=\(.rule_id)::\((.details // "") | esc_data)"' "$REPORT"
+            exit 1
+          fi
+
+          echo "GoSec SAST scan passed"

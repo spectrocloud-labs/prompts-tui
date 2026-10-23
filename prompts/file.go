@@ -109,7 +109,7 @@ func splitEditorCommand(s string) ([]string, error) {
 
 func getEditorExecutor(editor, filename string) mocks.CommandExecutor {
 	args := append(append([]string{}, editorArgs...), filename)
-	cmd := exec.Command(editor, args...)
+	cmd := exec.Command(editor, args...) //#nosec G204
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
