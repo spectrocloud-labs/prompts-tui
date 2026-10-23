@@ -1,6 +1,6 @@
 module github.com/spectrocloud-labs/prompts-tui
 
-go 1.25.13
+go 1.26.10
 
 require (
 	emperror.dev/errors v0.8.1
