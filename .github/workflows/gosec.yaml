@@ -48,17 +48,34 @@ jobs:
             exit 1
           fi
 
-          issues=$(jq -r '.Stats.found // 0' "$REPORT")
+          # No default here: a missing or null count is a malformed report, not a clean scan.
+          issues=$(jq -r '.Stats.found' "$REPORT")
           case "$issues" in
             ''|*[!0-9]*)
-              echo "::error::could not read .Stats.found from $REPORT"
+              echo "::error::could not read a non-negative integer from .Stats.found in $REPORT (got: $issues)"
               exit 1
               ;;
           esac
 
-          files=$(jq -r '.Stats.files // 0' "$REPORT")
+          files=$(jq -r '.Stats.files' "$REPORT")
+          case "$files" in
+            ''|*[!0-9]*)
+              echo "::error::could not read a non-negative integer from .Stats.files in $REPORT (got: $files)"
+              exit 1
+              ;;
+          esac
           if [ "$files" -eq 0 ]; then
             echo "::error::gosec scanned 0 files; the module graph probably failed to load"
+            exit 1
+          fi
+
+          # -no-fail lets gosec finish when some packages cannot be type-checked. Those
+          # failures are recorded here rather than in .Stats, so a partial scan would
+          # otherwise pass with a plausible-looking file count.
+          golang_errors=$(jq -r '."Golang errors" // {} | length' "$REPORT")
+          if [ "$golang_errors" -gt 0 ]; then
+            echo "::error::gosec reported errors for ${golang_errors} file(s); the scan is incomplete"
+            jq -r '."Golang errors" // {} | to_entries[] | .key as $f | .value[] | "::error file=\($f):\(.line)::\(.error)"' "$REPORT"
             exit 1
           fi
 
@@ -73,7 +90,14 @@ jobs:
 
           if [ "$issues" -gt 0 ]; then
             echo "GoSec SAST scan failed with below findings..."
-            jq -r '(.Issues // [])[] | "::error file=\(.file),line=\(.line)::\(.rule_id) \(.details)"' "$REPORT"
+            # .line may be a range ("43-46"); annotations need a numeric line plus endLine.
+            # Paths are absolutised by gosec, so strip the workspace prefix for annotations.
+            jq -r --arg root "$PWD" '(.Issues // [])[]
+              | (.line | tostring | split("-")) as $pos
+              | "::error file=\(.file | if startswith($root) then .[($root | length) + 1:] else . end)"
+                + ",line=\($pos[0])"
+                + (if ($pos | length) > 1 then ",endLine=\($pos[1])" else "" end)
+                + ",title=\(.rule_id)::\(.details)"' "$REPORT"
             exit 1
           fi
 
