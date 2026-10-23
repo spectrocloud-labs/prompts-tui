@@ -40,7 +40,7 @@ func init() {
 }
 
 func getEditorExecutor(editor, filename string) mocks.CommandExecutor {
-	cmd := exec.Command(editor, filename)
+	cmd := exec.Command(editor, filename) //#nosec G204
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
