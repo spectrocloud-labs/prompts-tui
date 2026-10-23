@@ -76,8 +76,20 @@ jobs:
           # otherwise pass with a plausible-looking file count.
           golang_errors=$(jq -r '."Golang errors" // {} | length' "$REPORT")
           if [ "$golang_errors" -gt 0 ]; then
-            echo "::error::gosec reported errors for ${golang_errors} file(s); the scan is incomplete"
-            jq -r '."Golang errors" // {} | to_entries[] | .key as $f | .value[] | "::error file=\($f):\(.line)::\(.error)"' "$REPORT"
+            files_with_errors=$(jq -r '."Golang errors" // {} | keys | map(select(. != "")) | length' "$REPORT")
+            echo "::error::gosec reported type-check errors for ${files_with_errors} file(s); the scan is incomplete"
+            # gosec absolutises the path, so strip the workspace prefix like the finding
+            # annotations. It also emits a "" key holding the raw build error; skip that,
+            # and pass the line as its own field, since file=path:line is not a valid
+            # annotation position. Newlines must be escaped or they truncate the command.
+            jq -r --arg root "$PWD" '."Golang errors" // {}
+              | to_entries[]
+              | select(.key != "" and .key != null)
+              | .key as $f
+              | .value[]
+              | (.error // "" | gsub("%"; "%25") | gsub("\r"; "%0D") | gsub("\n"; "%0A")) as $msg
+              | "::error file=\($f | if startswith($root) then .[($root | length) + 1:] else . end)"
+                + ",line=\(if (.line // 0) > 0 then .line else 1 end)::\($msg)"' "$REPORT"
             exit 1
           fi
 
