@@ -1,0 +1,80 @@
+name: GoSec
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gosec-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GOSEC_VERSION: v2.30.0
+  REPORT: gosec-report.json
+
+jobs:
+  gosec-pr-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Set up Go
+        uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4
+        with:
+          go-version: '1.26'
+
+      # gosec needs a resolved module graph to build type info for each package.
+      - name: download-modules
+        run: go mod download
+
+      - name: install-gosec
+        run: GOBIN="$RUNNER_TEMP/bin" go install "github.com/securego/gosec/v2/cmd/gosec@$GOSEC_VERSION"
+
+      - name: run-gosec-scan
+        run: |
+          # -no-fail so findings land in the report instead of aborting this step;
+          # check-result decides pass/fail.
+          "$RUNNER_TEMP/bin/gosec" -fmt=json -out="$REPORT" -no-fail ./...
+          echo "scanned $(jq -r '.Stats.files' "$REPORT") files"
+
+      - name: check-result
+        run: |
+          if [ ! -s "$REPORT" ]; then
+            echo "::error::$REPORT is missing or empty; the scan did not complete"
+            exit 1
+          fi
+
+          issues=$(jq -r '.Stats.found // 0' "$REPORT")
+          case "$issues" in
+            ''|*[!0-9]*)
+              echo "::error::could not read .Stats.found from $REPORT"
+              exit 1
+              ;;
+          esac
+
+          files=$(jq -r '.Stats.files // 0' "$REPORT")
+          if [ "$files" -eq 0 ]; then
+            echo "::error::gosec scanned 0 files; the module graph probably failed to load"
+            exit 1
+          fi
+
+          {
+            echo "### gosec: ${issues} finding(s) across ${files} files"
+            jq -r '(.Issues // []) | group_by(.rule_id)[] | "- \(.[0].rule_id): \(length)"' "$REPORT"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "Found ${issues} issues in ${files} files"
+          echo "Issues by Rule ID"
+          jq -r '(.Issues // []) | group_by(.rule_id)[] | {rule: .[0].rule_id, count: length}' "$REPORT"
+
+          if [ "$issues" -gt 0 ]; then
+            echo "GoSec SAST scan failed with below findings..."
+            jq -r '(.Issues // [])[] | "::error file=\(.file),line=\(.line)::\(.rule_id) \(.details)"' "$REPORT"
+            exit 1
+          fi
+
+          echo "GoSec SAST scan passed"

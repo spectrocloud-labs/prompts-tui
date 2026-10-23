@@ -40,7 +40,10 @@ func init() {
 }
 
 func getEditorExecutor(editor, filename string) mocks.CommandExecutor {
-	cmd := exec.Command(editor, filename)
+	// editor comes from VISUAL/EDITOR, so passing it to exec.Command is the intended
+	// behaviour rather than an injection sink: the user is choosing which program to run.
+	// exec.Command does not invoke a shell, so metacharacters in the value are not interpreted.
+	cmd := exec.Command(editor, filename) //#nosec G204
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
