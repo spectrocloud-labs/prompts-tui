@@ -1,14 +1,53 @@
 package prompts
 
 import (
+	"bytes"
 	"errors"
 	"reflect"
 	"regexp"
 	"strings"
 	"testing"
 
+	"github.com/pterm/pterm"
 	"github.com/spectrocloud-labs/prompts-tui/prompts/mocks"
 )
+
+func TestLogValidationFailureMasksSensitiveInput(t *testing.T) {
+	subtests := []struct {
+		name          string
+		mask          string
+		input         string
+		expectInInput bool
+	}{
+		{
+			name:          "unmasked field logs input",
+			mask:          "",
+			input:         "plain-value",
+			expectInInput: true,
+		},
+		{
+			name:          "masked field omits input",
+			mask:          "*",
+			input:         "super-secret-api-key",
+			expectInInput: false,
+		},
+	}
+	for _, subtest := range subtests {
+		t.Run(subtest.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			originalLogger := logger
+			logger = *pterm.DefaultLogger.WithWriter(&buf)
+			defer func() { logger = originalLogger }()
+
+			logValidationFailure(subtest.mask, subtest.input, errors.New("validation failed"))
+
+			out := buf.String()
+			if strings.Contains(out, subtest.input) != subtest.expectInInput {
+				t.Errorf("expected input %q present=%v in log output, got: %s", subtest.input, subtest.expectInInput, out)
+			}
+		})
+	}
+}
 
 func TestReadBool(t *testing.T) {
 	subtests := []struct {

@@ -111,11 +111,22 @@ func (p PtermTUI) GetText(prompt, defaultVal, mask string, optional bool, valida
 		}
 
 		if err := validate(s); err != nil {
-			logger.Info("Validation failed", logger.Args("input", s, "error", err.Error()))
+			logValidationFailure(mask, s, err)
 			continue
 		}
 		return s, nil
 	}
+}
+
+// logValidationFailure logs a validation failure. The input value is omitted
+// when mask is set, since a non-empty mask means the field holds sensitive
+// data (e.g. a password or API key) that must never be printed in plain text.
+func logValidationFailure(mask, input string, err error) {
+	if mask != "" {
+		logger.Info("Validation failed", logger.Args("error", err.Error()))
+		return
+	}
+	logger.Info("Validation failed", logger.Args("input", input, "error", err.Error()))
 }
 
 // GetTextSlice prompts a slice of strings from the user with optional validation.
